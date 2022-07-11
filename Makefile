@@ -24,6 +24,9 @@ all: $(OUTNAME).hex Makefile
 
 install: $(OUTNAME).hex
 	micronucleus $^
+
+install-avr: $(OUTNAME).hex
+	avrdude -p t85 -c usbtiny -v -U flash:w:$^
 # fuse.txt: Makefile
 ifdef CLOCK16 
 	echo "fuses_lo = 0x00f1" > fuse.txt
