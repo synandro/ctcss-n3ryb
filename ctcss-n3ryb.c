@@ -2,7 +2,7 @@
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
-
+#include <stdbool.h>
 #define MULT_77 618
 #define MULT_100 807
 #define MULT_103_5 828
@@ -15,7 +15,6 @@
 #define MULT_167_9 1342
 #define MULT_179_9  1439
 #define MULT_203_5 1624
-// #define HZ_LAST HZ_203_5
 
 
 struct frequencies 
@@ -79,12 +78,12 @@ const uint8_t sine_wave[256] = {
 0x4d,0x4a,0x47,0x45,0x42,0x3f,0x3c,0x3a,
 0x37,0x35,0x32,0x30,0x2d,0x2b,0x28,0x26,
 0x24,0x22,0x20,0x1e,0x1c,0x1a,0x18,0x16,
-0x14,0x13,0x11,0x10,0xe,0xd,0xb,0xa,
-0x9,0x8,0x7,0x6,0x5,0x4,0x3,0x3,
-0x2,0x2,0x1,0x1,0x0,0x0,0x0,0x0,
-0x0,0x0,0x0,0x1,0x1,0x1,0x2,0x2,
-0x3,0x4,0x4,0x5,0x6,0x7,0x8,0x9,
-0xb,0xc,0xd,0xf,0x10,0x12,0x14,0x15,
+0x14,0x13,0x11,0x10,0x0e,0x0d,0x0b,0x0a,
+0x09,0x08,0x07,0x06,0x05,0x04,0x03,0x03,
+0x02,0x02,0x01,0x01,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x01,0x01,0x01,0x02,0x02,
+0x03,0x04,0x04,0x05,0x06,0x07,0x08,0x09,
+0x0b,0x0c,0x0d,0x0f,0x10,0x12,0x14,0x15,
 0x17,0x19,0x1b,0x1d,0x1f,0x21,0x23,0x25,
 0x27,0x2a,0x2c,0x2e,0x31,0x33,0x36,0x38,
 0x3b,0x3e,0x40,0x43,0x46,0x49,0x4c,0x4f,
@@ -101,32 +100,43 @@ void change_frequency(ctcss_t freq)
 {
 	cur_freq = freq;
 	cur_mult = freq_table[freq].mult;
+	
+	for(int8_t i = 0; i < 3; i++)
+	{
+		PORTB |= (1 << PB0);
+		_delay_ms(50);
+		PORTB &= ~(1 << PB0);
+	}
+	
+	PORTB |= (1 << PB0);	
+//	  PORTB |= (1 << PB3);			//replaces digitalWrite(PB3, HIGH);
+//   delay(20);
+//   PORTB &= ~(1 << PB3);		//replaces digitalWrite(PB3, LOW);
 }
 
-
-#define INPUT_PIN 1
-
-void setup() {
-	// Specification of clock source for Timer/Counter1
+void setup() 
+{
 	PLLCSR = 1<<PCKE | 1<<PLLE;     
 
 	change_frequency(HZ_77);
-	// Activating Timer/Counter1 in PWM mode
-	TIMSK = 0;                          // Turning Timer interrupts to OFF
-	TCCR1 = 1<<CS10;                    // 1:1 prescale
-	GTCCR = 1<<PWM1B | 2<<COM1B0;   // PWM B is cleared on matching
 
-	DDRB |= (1 << PB4);  // set PB4 direction to output 
+	TIMSK = 0;                          
+	TCCR1 = 1<<PWM1A | 2<<COM1A0 | 1<<CS10;
 
-	TCCR0A = 3<<WGM00;                // Fast PWM
-	TCCR0B = 1<<WGM02 | 2<<CS00;      // 1/8 prescal
-  	TIMSK = 1<<OCIE0A;                // Enabling compare match, disabling overflow
-  	//OCR0A = F_CPU / Temp;
-  	// OCR0A = 122;                         
+
+	TCCR0A = 3<<WGM00;               
+	TCCR0B = 1<<WGM02 | 2<<CS00;      
+  	TIMSK = 1<<OCIE0A;                
   	OCR0A = 250;
+
+	DDRB |= (1 << PB1);  // PB1 direction to output 
+
   	DDRB &= ~(1 << DDB3); 
-  	PORTB |= (1 << PORTB3);  //activate internal pull-up resistor for PB3
+  	PORTB |= (1 << PORTB2);	/* activate internal pull-up resistor for PB3 */
+  	DDRB |= (1 << PB0); // PB0 direction to output too
+  	PORTB |= (1 << PB0); // turn the led on 
   	sei();
+
 
 }
 
@@ -134,12 +144,18 @@ void setup() {
 
 void loop() 
 {
+	int x, y;
+//	uint64_t q = 0;
+	uint8_t q = 0;
+	
+	bool state = true;
 	while(1) 
 	{
-		int x = PINB & (1 << PINB3);
+		q++;
+		x = PINB & (1 << PINB3);
 		_delay_ms(500);
-		int y = PINB & (1 << PINB3);
-		
+		y = PINB & (1 << PINB3);
+
 		if(x != y)
 		{
 			if(cur_freq + 1 == HZ_LAST)
@@ -149,15 +165,28 @@ void loop()
 				change_frequency(cur_freq+1);
 			_delay_ms(1000);
 		}
-		
+		if(q == 12)
+		{
+			q = 0;
+			if(state == true)
+			{
+				PORTB &= ~(1 << PB0);
+				state = false;
+			} else {
+				PORTB |= (1 << PB0);
+				state = true;
+			}
+		}
+			
 	}
 }
 
 
 ISR(TIMER0_COMPA_vect) {
 
-	counter += cur_mult;
-	OCR1B = sine_wave[(counter >> 8)];
+//	counter += cur_mult;
+//	OCR1A = sine_wave[(counter >> 8)];
+	OCR1A = sine_wave[((counter += cur_mult) >> 8)];
 }
 
 int main(void)
