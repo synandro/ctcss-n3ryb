@@ -9,6 +9,7 @@
 #define MULT_103_5 828
 #define MULT_118_8 949
 #define MULT_123 984
+//#define MULT_123 1968
 #define MULT_127_3 1017
 #define MULT_131_8 1052
 #define MULT_141_3 1129
@@ -18,13 +19,19 @@
 #define MULT_203_5 1624
 #define MULT_NONE 0
 
+#define TESTING 1
+
 struct frequencies 
 {
 	uint16_t mult;
 	uint16_t start;
 	uint16_t end;
 	uint8_t channel;
+//	const char *tone;
 };
+
+
+
 
 typedef enum  {
 //	HZ_77 = 0,
@@ -42,18 +49,19 @@ typedef enum  {
 } ctcss_t;
 
 
+
 static const struct frequencies freq_table[] = {
-	{ .mult = MULT_100, 	.start = 950,	.end = 1024,	.channel = 1 /* .freq = 77.0  */	},
-	{ .mult = MULT_103_5, 	.start = 860,	.end = 920,	.channel = 2 /* .freq = 100  */	},
-	{ .mult = MULT_118_8, 	.start = 751,	.end = 860,	.channel = 3 /* .freq = 103.5  */},
-	{ .mult = MULT_123, 	.start = 651,	.end = 750,	.channel = 4  /* .freq = 118.8 */},
-	{ .mult = MULT_127_3, 	.start = 550,	.end = 650,	.channel = 5 /* .freq = 123 */	},
-	{ .mult = MULT_131_8, 	.start = 450,	.end = 550,	.channel = 6 /* .freq = 127.3 */},
-	{ .mult = MULT_141_3, 	.start = 330,	.end = 450,	.channel = 7 /* .freq = 131.8 */},
-	{ .mult = MULT_146_2, 	.start = 300,	.end = 329,	.channel = 8 /* .freq = 141.3 */},
-	{ .mult = MULT_167_9, 	.start = 200,	.end = 299,	.channel = 9 /* .freq = 146.2 */},
-	{ .mult = MULT_179_9, 	.start = 130,	.end = 200,	.channel = 10 /* .freq = 167.9 */},
-	{ .mult = MULT_NONE, 	.start = 30,	.end = 130,	.channel = 11 /* .freq = 179.9 */},
+	{ /* .tone = "100", */	.mult = MULT_100, 	.start = 950,	.end = 1024,	.channel = 1	},
+	{ /*.tone = "103.5",*/	.mult = MULT_103_5, 	.start = 860,	.end = 920,	.channel = 2	},
+	{ /*.tone = "118.5",*/	.mult = MULT_118_8, 	.start = 751,	.end = 860,	.channel = 3	},
+	{ /*.tone = "123",*/	.mult = MULT_123, 	.start = 651,	.end = 750,	.channel = 4	},
+	{ /*.tone = "127.3",*/	.mult = MULT_127_3, 	.start = 550,	.end = 650,	.channel = 5 	},
+	{ /*.tone = "131.8",*/	.mult = MULT_131_8, 	.start = 450,	.end = 550,	.channel = 6 	},
+	{ /*.tone = "141.3",*/	.mult = MULT_141_3, 	.start = 330,	.end = 450,	.channel = 7	},
+	{ /*.tone = "146.2",*/	.mult = MULT_146_2, 	.start = 300,	.end = 329,	.channel = 8	},
+	{ /*.tone = "167.9",*/	.mult = MULT_167_9, 	.start = 200,	.end = 299,	.channel = 9 	},
+	{ /*.tone = "179.9",*/	.mult = MULT_179_9, 	.start = 130,	.end = 200,	.channel = 10	},
+	{ /* .tone = "0", */	.mult = MULT_NONE, 	.start = 30,	.end = 130,	.channel = 11	},
 };
 
 
@@ -92,15 +100,27 @@ static const uint8_t sine_wave[256] = {
 	0x6a,0x6d,0x70,0x73,0x76,0x79,0x7c,0x80
 };
 
+
+
+
+
 static uint16_t cur_mult;
 static uint16_t counter;
-static ctcss_t cur_freq = HZ_NONE+1;
+static uint8_t cur_freq;
 
-static uint8_t EEMEM saved_frequency = HZ_123;
+static uint8_t EEMEM saved_frequency = 0x3;
 
-#define led_off() (PORTB &= ~(1 << PB0));
-#define led_on() (PORTB |= (1 << PB0));
 
+static inline void led_off(void)
+{
+	PORTB &= ~(1 << PB0);
+
+}
+
+static inline void led_on(void)
+{
+	PORTB |= (1 << PB0);
+}
 
 static inline void stop_sine(void)
 {
@@ -113,24 +133,79 @@ static inline void start_sine(void)
 }
 
 
-static void set_saved_frequency(void)
+static void fast_blink(uint8_t count)
 {
+	led_off();
+	_delay_ms(1000);
+	for(int i = 0; i < count; i++)
+	{
+		led_on();
+		_delay_ms(100);
+		led_off();
+		_delay_ms(50);
+	}
+	led_on();
+
+}
+
+static void do_blink(uint8_t count)
+{
+	led_off();
+	_delay_ms(1000);
+	for(int i = 0; i < count; i++)
+	{
+		led_on();
+		_delay_ms(200);
+		led_off();
+		_delay_ms(200);
+	}
+	_delay_ms(500);	
+	led_on();
+}
+
+
+
+static void change_frequency(uint8_t freq)
+{
+	cur_freq = freq;
+	cur_mult = freq_table[freq].mult;
+	if(cur_mult == MULT_NONE)
+	{
+		stop_sine();
+		fast_blink(5);
+	} else {
+		start_sine();
+		do_blink(cur_freq);
+	}
+#ifndef TESTING
 	eeprom_write_byte(&saved_frequency, cur_freq);
+#endif
+//	do_blink(cur_freq);
 }
 
 static void load_saved_frequency(void)
 {
 	uint8_t f;
 	f = eeprom_read_byte(&saved_frequency);
-	change_frequency(f);
+	cur_freq = f;
+	cur_mult = freq_table[f].mult;
+	start_sine();
+	do_blink(f);
 }
 
+#ifdef TESTING
 
-static void change_frequency(ctcss_t freq)
+static void loop_all(void)
 {
-	cur_freq = freq;
-	cur_mult = freq_table[freq].mult;
+	for(uint8_t x = 0; x < sizeof(freq_table)/sizeof(struct frequencies); x++)
+	{
+		change_frequency(x);
+		_delay_ms(10000);		
+	}
+
 }
+#endif
+
 
 static void setup() 
 {
@@ -138,7 +213,6 @@ static void setup()
 
 	_delay_ms(100); /* give the PLL a chance to spin up */
 
-	change_frequency(HZ_123);
 
 	TIMSK = 0;                          
 	TCCR1 = 1<<PWM1A | 2<<COM1A0 | 1<<CS10;
@@ -146,39 +220,41 @@ static void setup()
 	TCCR0A = 3<<WGM00;               
 	TCCR0B = 1<<WGM02 | 2<<CS00;      
   	TIMSK = 1<<OCIE0A;                
-  	OCR0A = 250;
+  	OCR0A = 90;
 
 	DDRB |= (1 << PB1);  // PB1 direction to output - this is our pwm output
 
   	DDRB &= ~(1 << DDB3); 
   	PORTB |= (1 << PORTB2);	/* activate internal pull-up resistor for PB3 */
-  	DDRB |= (1 << PB0); // PB0 direction to output too
-  	PORTB |= (1 << PB0); // turn the led on 
+  	DDRB |= (1 << PB0);	// PB0 direction to output too
+  	PORTB |= (1 << PB0);	// turn the led on 
   	
   	ADCSRA|=(1<<ADEN);      //Enable ADC module
-  	ADMUX=0x01; // configuring PB2 to take input
-  	ADCSRB=0x00;           //Configuring free running mode
+  	ADMUX=0x01;		// configuring PB2 to take input
+  	ADCSRB=0x00;			//Configuring free running mode
   	ADCSRA|=(1<<ADSC)|(1<<ADATE);   //Start ADC conversion and enabling Auto trigger
-            
+
+
+  	led_off();
+  	fast_blink(5);
+  	_delay_ms(2000);
+  	led_on();
+//  	_delay_ms(1000);
+	load_saved_frequency();
   	sei();
+#ifdef TESTING	
+	loop_all();
+#endif
+
 }
 
-static void do_blink(int msec, int msec2, int count)
-{
-	for(int i = 0; i < count; i++)
-	{
-		led_on();
-		_delay_ms(200);
-		led_off();
-		_delay_ms(200);
-		led_on();
-	}	
-}
 
 static uint16_t adc_avg(void)
 {
 	uint16_t adc_val = 0;
 	uint16_t adc_l;
+	/* keep this powers of 2 otherwise the division is no longer a bit shift */
+
 	for(uint8_t i = 0; i < 8; i++)
 	{
 		adc_l = ADCL;
@@ -189,12 +265,12 @@ static uint16_t adc_avg(void)
 }
 
 
+
 static void loop() 
 {
-	uint8_t x;
 	uint16_t adc_val;
 	uint16_t adc2_val;
-	led_on();	
+//	led_on();	
 
 	while(1)
 	{
@@ -202,7 +278,7 @@ static void loop()
 		_delay_ms(500);
 		adc2_val = adc_avg();
 		
-		for(x = 0; x < sizeof(freq_table)/sizeof(struct frequencies); x++)
+		for(uint8_t x = 0; x < sizeof(freq_table)/sizeof(struct frequencies); x++)
 		{
 			/* do both samples agree */
 			if((adc_val >= freq_table[x].start && adc_val <= freq_table[x].end) && (adc2_val >= freq_table[x].start && adc2_val <= freq_table[x].end))
@@ -212,14 +288,7 @@ static void loop()
 					_delay_ms(30);
 					continue;
 				} else {
-					
-					for(int y = 0; y < 2; y++)
-					{
-						do_blink(0, 0, freq_table[x].channel);
-						_delay_ms(1000);
-						led_on();
-					}
-					change_frequency(x);
+					// change_frequency(x);
 					_delay_ms(3000); /* don't make any more changes for a wee bit */
 					continue;
 				
@@ -228,7 +297,6 @@ static void loop()
 		
 		}
 	}	
-
 }
 
 
@@ -239,6 +307,8 @@ ISR(TIMER0_COMPA_vect)
 
 int main(void)
 {
+//	do_blink(2);
 	setup();
 	loop();	
 }
+

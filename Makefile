@@ -13,9 +13,9 @@ endif
 ifdef RESET_ACTIVE
 EXTRA_FLAGS += -DRESET_ACTIVE
 endif
-EXTRA_FLAGS += -DF_CPU=8000000L -DCLOCK_SOURCE=6 -DARDUINO=10819 -DARDUINO_AVR_ATTINYX5 -DARDUINO_ARCH_AVR   -DNEOPIXELPORT=PORTB   -DBOOTTUNED165
+EXTRA_FLAGS += -DF_CPU=8000000L -DCLOCK_SOURCE=6 
 
-COMPILE    = avr-gcc -save-temps=obj -Wall  -mmcu=$(DEVICE) -O3
+COMPILE    = avr-gcc -save-temps=obj -Wall  -mmcu=$(DEVICE) -O3 -fverbose-asm  
 OBJS       = ctcss-n3ryb.o
 OUTNAME    := $(notdir $(patsubst %/,%,$(dir $(realpath $(firstword $(MAKEFILE_LIST))))))
 
