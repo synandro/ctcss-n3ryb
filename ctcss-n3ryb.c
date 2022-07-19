@@ -19,14 +19,14 @@
 #define MULT_203_5 1624
 #define MULT_NONE 0
 
-#define TESTING 1
+// #define TESTING 1
 
 struct frequencies 
 {
-	uint16_t mult;
-	uint16_t start;
-	uint16_t end;
-	uint8_t channel;
+	const uint16_t mult;
+	const uint16_t start;
+	const uint16_t end;
+	const uint8_t channel;
 //	const char *tone;
 };
 
@@ -49,7 +49,6 @@ typedef enum  {
 } ctcss_t;
 
 
-
 static const struct frequencies freq_table[] = {
 	{ /* .tone = "100", */	.mult = MULT_100, 	.start = 950,	.end = 1024,	.channel = 1	},
 	{ /*.tone = "103.5",*/	.mult = MULT_103_5, 	.start = 860,	.end = 920,	.channel = 2	},
@@ -61,8 +60,9 @@ static const struct frequencies freq_table[] = {
 	{ /*.tone = "146.2",*/	.mult = MULT_146_2, 	.start = 300,	.end = 329,	.channel = 8	},
 	{ /*.tone = "167.9",*/	.mult = MULT_167_9, 	.start = 200,	.end = 299,	.channel = 9 	},
 	{ /*.tone = "179.9",*/	.mult = MULT_179_9, 	.start = 130,	.end = 200,	.channel = 10	},
-	{ /* .tone = "0", */	.mult = MULT_NONE, 	.start = 30,	.end = 130,	.channel = 11	},
+	{ /* .tone = "0", */	.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
 };
+
 
 
 static const uint8_t sine_wave[256] = {
@@ -114,7 +114,6 @@ static uint8_t EEMEM saved_frequency = 0x3;
 static inline void led_off(void)
 {
 	PORTB &= ~(1 << PB0);
-
 }
 
 static inline void led_on(void)
@@ -124,12 +123,14 @@ static inline void led_on(void)
 
 static inline void stop_sine(void)
 {
-	TIMSK = 0;
+//	cli();
+//	TIMSK = 0;
 }
 
 static inline void start_sine(void)
 {
-	TCCR1 = 1<<PWM1A | 2<<COM1A0 | 1<<CS10;
+//	sei();
+	//TCCR1 = 1<<PWM1A | 2<<COM1A0 | 1<<CS10;
 }
 
 
@@ -159,7 +160,7 @@ static void do_blink(uint8_t count)
 		led_off();
 		_delay_ms(200);
 	}
-	_delay_ms(500);	
+	_delay_ms(800);	
 	led_on();
 }
 
@@ -172,7 +173,7 @@ static void change_frequency(uint8_t freq)
 	if(cur_mult == MULT_NONE)
 	{
 		stop_sine();
-		fast_blink(5);
+		fast_blink(4);
 	} else {
 		start_sine();
 		do_blink(cur_freq);
@@ -220,7 +221,7 @@ static void setup()
 	TCCR0A = 3<<WGM00;               
 	TCCR0B = 1<<WGM02 | 2<<CS00;      
   	TIMSK = 1<<OCIE0A;                
-  	OCR0A = 90;
+  	OCR0A = 121;
 
 	DDRB |= (1 << PB1);  // PB1 direction to output - this is our pwm output
 
@@ -229,17 +230,14 @@ static void setup()
   	DDRB |= (1 << PB0);	// PB0 direction to output too
   	PORTB |= (1 << PB0);	// turn the led on 
   	
-  	ADCSRA|=(1<<ADEN);      //Enable ADC module
-  	ADMUX=0x01;		// configuring PB2 to take input
-  	ADCSRB=0x00;			//Configuring free running mode
-  	ADCSRA|=(1<<ADSC)|(1<<ADATE);   //Start ADC conversion and enabling Auto trigger
+  	ADCSRA |= (1<<ADEN);      //Enable ADC module
+  	ADMUX= 0x01;		// configuring PB2 to take input
+  	ADCSRB= 0x00;			//Configuring free running mode
+  	ADCSRA |= (1<<ADSC)|(1<<ADATE);   //Start ADC conversion and enabling Auto trigger
 
 
-  	led_off();
   	fast_blink(5);
-  	_delay_ms(2000);
-  	led_on();
-//  	_delay_ms(1000);
+
 	load_saved_frequency();
   	sei();
 #ifdef TESTING	
@@ -248,20 +246,20 @@ static void setup()
 
 }
 
-
 static uint16_t adc_avg(void)
 {
+	const uint8_t adc_samples = 16;
 	uint16_t adc_val = 0;
 	uint16_t adc_l;
 	/* keep this powers of 2 otherwise the division is no longer a bit shift */
 
-	for(uint8_t i = 0; i < 8; i++)
+	for(uint8_t i = 0; i < adc_samples; i++)
 	{
 		adc_l = ADCL;
 		adc_val += ((ADCH<<8)|adc_l);
 		_delay_ms(5);
 	}
-	return (adc_val / 8);
+	return (adc_val / adc_samples);
 }
 
 
@@ -270,7 +268,7 @@ static void loop()
 {
 	uint16_t adc_val;
 	uint16_t adc2_val;
-//	led_on();	
+
 
 	while(1)
 	{
@@ -285,16 +283,13 @@ static void loop()
 			{
 				if(cur_freq == x)
 				{
-					_delay_ms(30);
-					continue;
+					_delay_ms(200);
 				} else {
-					// change_frequency(x);
-					_delay_ms(3000); /* don't make any more changes for a wee bit */
-					continue;
-				
+					change_frequency(x);
+					_delay_ms(2000); /* don't make any more changes for a wee bit */
 				}
+				continue;
 			}
-		
 		}
 	}	
 }
