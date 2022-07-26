@@ -4,22 +4,120 @@
 #include <avr/interrupt.h>
 #include <avr/eeprom.h>
 #include <stdbool.h>
-#define MULT_77 618
-#define MULT_100 807
-#define MULT_103_5 828
-#define MULT_118_8 949
-#define MULT_123 984
-//#define MULT_123 1968
-#define MULT_127_3 1017
-#define MULT_131_8 1052
-#define MULT_141_3 1129
-#define MULT_146_2 1168
-#define MULT_167_9 1342
-#define MULT_179_9  1439
-#define MULT_203_5 1624
-#define MULT_NONE 0
 
 // #define TESTING 1
+
+
+/* the different states we can be in.  start in idle mode  */
+enum {
+	MODE_IDLE,
+	MODE_HALFWAY,
+	MODE_PROGRAM,
+};
+
+
+
+/* these are (Hz * 8) but experimentally checked to be on frequency */
+enum {
+	/* these are (Hz * 8) but experimentally checked to be on frequency */
+
+	MULT_77 = 618,
+	MULT_100 = 807,
+	MULT_103_5 = 828,
+	MULT_118_8 = 949,
+	MULT_123 = 984,
+	MULT_127_3 = 1017,
+	MULT_131_8 = 1052,
+	MULT_141_3 = 1129, 
+	MULT_146_2 = 1168,
+	MULT_167_9 = 1342,
+	MULT_179_9 = 1439,
+	MULT_203_5 = 1624,
+	MULT_NONE = 0,
+	
+	/* these all need tested */
+	MULT_67 = 536,
+	MULT_69_3 = 554,
+	MULT_71_9 = 575,
+	MULT_74_4 = 595,
+	MULT_79_7 = 638,
+	MULT_82_5 = 660,
+	MULT_85_4 = 683,
+	MULT_88_5 = 708,
+	MULT_91_5 = 732,
+
+	MULT_94_8 = 758,
+	MULT_97_4 = 779,
+	MULT_107_2 = 858,
+	MULT_110_9 = 887,
+	MULT_114_8 = 918,
+	MULT_136_5 = 1092,
+	MULT_151_4 = 1211,
+	MULT_156_7 = 1254,
+	MULT_162_2 = 1298,
+	MULT_173_8 = 1390,
+	MULT_186_2 = 1490,
+	MULT_192_8 = 1542,
+	MULT_206_5 = 1652,
+	MULT_210_7 = 1686,
+	MULT_218_1 = 1745,
+	MULT_225_7 = 1806,
+	MULT_229_1 = 1833,
+	MULT_233_6 = 1869,
+	MULT_241_8 = 1934,
+	MULT_250_3 = 2002,
+	MULT_254_1 = 2033,
+
+
+
+};
+
+/* these are the multipliers that were calculated, they need verified ***
+	MULT_67 = 536,
+	MULT_69_3 = 554,
+	MULT_71_9 = 575,
+	MULT_74_4 = 595,
+	MULT_77 = 616,
+	MULT_79_7 = 638,
+	MULT_82_5 = 660,
+	MULT_85_4 = 683,
+	MULT_88_5 = 708,
+	MULT_91_5 = 732,
+	MULT_94_8 = 758,
+	MULT_97_4 = 779,
+	MULT_100 = 800,
+	MULT_103_5 = 828,
+	MULT_107_2 = 858,
+	MULT_110_9 = 887,
+	MULT_114_8 = 918,
+	MULT_118_8 = 950,
+	MULT_123 = 984,
+	MULT_127_3 = 1018,
+	MULT_131_8 = 1054,
+	MULT_136_5 = 1092,
+	MULT_141_3 = 1130,
+	MULT_146_2 = 1170,
+	MULT_151_4 = 1211,
+	MULT_156_7 = 1254,
+	MULT_162_2 = 1298,
+	MULT_167_9 = 1343,
+	MULT_173_8 = 1390,
+	MULT_179_9 = 1439,
+	MULT_186_2 = 1490,
+	MULT_192_8 = 1542,
+	MULT_203_5 = 1628,
+	MULT_206_5 = 1652,
+	MULT_210_7 = 1686,
+	MULT_218_1 = 1745,
+	MULT_225_7 = 1806,
+	MULT_229_1 = 1833,
+	MULT_233_6 = 1869,
+	MULT_241_8 = 1934,
+	MULT_250_3 = 2002,
+	MULT_254_1 = 2033,
+*/
+
+
 
 struct frequencies 
 {
@@ -27,14 +125,10 @@ struct frequencies
 	const uint16_t start;
 	const uint16_t end;
 	const uint8_t channel;
-//	const char *tone;
 };
 
 
-
-
-typedef enum  {
-//	HZ_77 = 0,
+enum  {
 	HZ_100 = 0,
 	HZ_103_5 = 1,
 	HZ_118_8 = 2,
@@ -46,8 +140,71 @@ typedef enum  {
 	HZ_167_9 = 8,
 	HZ_179_9 = 9,
 	HZ_NONE = 10,
-} ctcss_t;
+};
 
+/*
+
+	HZ_67
+	HZ_69_3
+	HZ_71_9
+	HZ_74_4
+	HZ_77
+	HZ_79_7
+	HZ_82_5
+	HZ_85_4
+	HZ_88_5
+	HZ_91_5
+	HZ_94_8
+	HZ_97_4
+	HZ_100
+	HZ_103_5
+	HZ_107_2
+	HZ_110_9
+	HZ_114_8
+	HZ_118_8
+	HZ_123
+	HZ_127_3
+	HZ_131_8
+	HZ_136_5
+	HZ_141_3
+	HZ_146_2
+	HZ_151_4
+	HZ_156_7
+	HZ_162_2
+	HZ_167_9
+	HZ_173_8
+	HZ_179_9
+	HZ_186_2
+	HZ_192_8
+	HZ_203_5
+	HZ_206_5
+	HZ_210_7
+	HZ_218_1
+	HZ_225_7
+	HZ_229_1
+	HZ_233_6
+	HZ_241_8
+	HZ_250_3
+	HZ_254_1
+*/
+
+/*
+INDEX=994 R2=51000 R1=33000 vout = 4.85714285714286 index= 994
+INDEX=852 R2=51000 R1=47000 vout = 4.16326530612245 index= 852
+INDEX=819 R2=51000 R1=51000 vout = 4 index= 819
+INDEX=702 R2=51000 R1=68000 vout = 3.42857142857143 index= 702
+INDEX=553 R2=51000 R1=100000 vout = 2.70198675496689 index= 553
+INDEX=415 R2=51000 R1=150000 vout = 2.02985074626866 index= 415
+INDEX=332 R2=51000 R1=200000 vout = 1.62549800796813 index= 332
+INDEX=308 R2=51000 R1=220000 vout = 1.50553505535055 index= 308
+INDEX=238 R2=51000 R1=300000 vout = 1.16239316239316 index= 238
+INDEX=219 R2=51000 R1=330000 vout = 1.07086614173228 index= 219
+INDEX=189 R2=51000 R1=390000 vout = 0.925170068027211 index= 189
+INDEX=160 R2=51000 R1=470000 vout = 0.783109404990403 index= 160
+INDEX=114 R2=51000 R1=680000 vout = 0.558139534883721 index= 114
+
+
+*/
 
 static const struct frequencies freq_table[] = {
 	{ /* .tone = "100", */	.mult = MULT_100, 	.start = 950,	.end = 1024,	.channel = 1	},
@@ -63,6 +220,51 @@ static const struct frequencies freq_table[] = {
 	{ /* .tone = "0", */	.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
 };
 
+
+#if 0
+static const struct frequencies freq_table_two[] = {
+	{ /* .tone = "67", */	.mult = MULT_67, 	.start = 950,	.end = 1024,	.channel = 1	},
+	{ /*.tone = "69.3",*/	.mult = MULT_69_3, 	.start = 860,	.end = 920,	.channel = 2	},
+	{ /*.tone = "71.9",*/	.mult = MULT_71_9, 	.start = 751,	.end = 860,	.channel = 3	},
+	{ /*.tone = "74.4",*/	.mult = MULT_74_4, 	.start = 651,	.end = 750,	.channel = 4	},
+	{ /*.tone = "77",*/	.mult = MULT_77, 	.start = 550,	.end = 650,	.channel = 5 	},
+	{ /*.tone = "79.7",*/	.mult = MULT_79_7, 	.start = 450,	.end = 550,	.channel = 6 	},
+	{ /*.tone = "82.5",*/	.mult = MULT_82_5, 	.start = 330,	.end = 450,	.channel = 7	},
+	{ /*.tone = "85.4",*/	.mult = MULT_85_4, 	.start = 300,	.end = 329,	.channel = 8	},
+	{ /*.tone = "88.5",*/	.mult = MULT_88_5, 	.start = 200,	.end = 299,	.channel = 9 	},
+	{ /*.tone = "91.5",*/	.mult = MULT_91_5, 	.start = 130,	.end = 200,	.channel = 10	},
+	{ /* .tone = "0", */	.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
+};
+
+static const struct frequencies freq_table_three[] = {
+	{ /* .tone = "94.8", */	.mult = MULT_94_8, 	.start = 950,	.end = 1024,	.channel = 1	},
+	{ /*.tone = "97.4",*/	.mult = MULT_97_4, 	.start = 860,	.end = 920,	.channel = 2	},
+	{ /*.tone = "100",*/	.mult = MULT_100, 	.start = 751,	.end = 860,	.channel = 3	},
+	{ /*.tone = "103.5",*/	.mult = MULT_103_5, 	.start = 651,	.end = 750,	.channel = 4	},
+	{ /*.tone = "107.2",*/	.mult = MULT_107_2, 	.start = 550,	.end = 650,	.channel = 5 	},
+	{ /*.tone = "110.9",*/	.mult = MULT_110_9, 	.start = 450,	.end = 550,	.channel = 6 	},
+	{ /*.tone = "114.8",*/	.mult = MULT_114_8, 	.start = 330,	.end = 450,	.channel = 7	},
+	{ /*.tone = "118.8",*/	.mult = MULT_118_8, 	.start = 300,	.end = 329,	.channel = 8	},
+	{ /*.tone = "123",*/	.mult = MULT_123, 	.start = 200,	.end = 299,	.channel = 9 	},
+	{ /*.tone = "127.3",*/	.mult = MULT_127_3, 	.start = 130,	.end = 200,	.channel = 10	},
+	{ /* .tone = "0", */	.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
+};
+
+static const struct frequencies freq_table_four[] = {
+	{ /*.tone = "131.8", */	.mult = MULT_131_8, 	.start = 950,	.end = 1024,	.channel = 1	},
+	{ /*.tone = "136.5",*/	.mult = MULT_136_5, 	.start = 860,	.end = 920,	.channel = 2	},
+	{ /*.tone = "141.3",*/	.mult = MULT_141_3, 	.start = 751,	.end = 860,	.channel = 3	},
+	{ /*.tone = "146.2",*/	.mult = MULT_146_2, 	.start = 651,	.end = 750,	.channel = 4	},
+	{ /*.tone = "151.4",*/	.mult = MULT_151_4, 	.start = 550,	.end = 650,	.channel = 5 	},
+	{ /*.tone = "156.7",*/	.mult = MULT_156_7, 	.start = 450,	.end = 550,	.channel = 6 	},
+	{ /*.tone = "162.2",*/	.mult = MULT_162_2, 	.start = 330,	.end = 450,	.channel = 7	},
+	{ /*.tone = "167.9",*/	.mult = MULT_167_9, 	.start = 300,	.end = 329,	.channel = 8	},
+	{ /*.tone = "173.8",*/	.mult = MULT_173_8, 	.start = 200,	.end = 299,	.channel = 9 	},
+	{ /*.tone = "179.9",*/	.mult = MULT_179_9, 	.start = 130,	.end = 200,	.channel = 10	},
+	{ /* .tone = "0", */	.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
+};
+
+#endif
 
 
 static const uint8_t sine_wave[256] = {
@@ -108,7 +310,7 @@ static uint16_t cur_mult;
 static uint16_t counter;
 static uint8_t cur_freq;
 
-static uint8_t EEMEM saved_frequency = 0x3;
+static uint8_t EEMEM saved_frequency = HZ_123;
 
 
 static inline void led_off(void)
@@ -121,24 +323,12 @@ static inline void led_on(void)
 	PORTB |= (1 << PB0);
 }
 
-static inline void stop_sine(void)
-{
-//	cli();
-//	TIMSK = 0;
-}
 
-static inline void start_sine(void)
-{
-//	sei();
-	//TCCR1 = 1<<PWM1A | 2<<COM1A0 | 1<<CS10;
-}
-
-
-static void fast_blink(uint8_t count)
+static void fast_blink(const uint8_t count)
 {
 	led_off();
 	_delay_ms(1000);
-	for(int i = 0; i < count; i++)
+	for(uint8_t i = 0; i < count; i++)
 	{
 		led_on();
 		_delay_ms(100);
@@ -153,45 +343,49 @@ static void do_blink(uint8_t count)
 {
 	led_off();
 	_delay_ms(1000);
-	for(int i = 0; i < count; i++)
+	for(uint8_t i = 0; i < count; i++)
 	{
 		led_on();
 		_delay_ms(200);
 		led_off();
 		_delay_ms(200);
 	}
-	_delay_ms(800);	
+	_delay_ms(1000);
 	led_on();
 }
 
 
 
-static void change_frequency(uint8_t freq)
+static void change_frequency(const uint8_t freq, bool save)
 {
 	cur_freq = freq;
 	cur_mult = freq_table[freq].mult;
 	if(cur_mult == MULT_NONE)
 	{
-		stop_sine();
 		fast_blink(4);
 	} else {
-		start_sine();
-		do_blink(cur_freq);
+		do_blink(freq_table[freq].channel);
 	}
-#ifndef TESTING
-	eeprom_write_byte(&saved_frequency, cur_freq);
-#endif
-//	do_blink(cur_freq);
+	if(save == false)
+		return;
+
+	/* save some wear if its the same frequency */
+	if(!(eeprom_read_byte(&saved_frequency) == cur_freq))	
+		eeprom_write_byte(&saved_frequency, cur_freq);
 }
 
 static void load_saved_frequency(void)
 {
 	uint8_t f;
+	bool save false;
 	f = eeprom_read_byte(&saved_frequency);
-	cur_freq = f;
-	cur_mult = freq_table[f].mult;
-	start_sine();
-	do_blink(f);
+	
+	/* corrupt eeprom? just turn ourselves off */
+	if(f > HZ_NONE) {
+		f = HZ_NONE;
+		save = true;
+	}
+	change_frequency(f, save);
 }
 
 #ifdef TESTING
@@ -200,10 +394,9 @@ static void loop_all(void)
 {
 	for(uint8_t x = 0; x < sizeof(freq_table)/sizeof(struct frequencies); x++)
 	{
-		change_frequency(x);
+		change_frequency(x, false);
 		_delay_ms(10000);		
 	}
-
 }
 #endif
 
@@ -212,7 +405,7 @@ static void setup()
 {
 	PLLCSR = 1<<PCKE | 1<<PLLE;     
 
-	_delay_ms(100); /* give the PLL a chance to spin up */
+	_delay_ms(200); /* give the PLL a chance to spin up */
 
 
 	TIMSK = 0;                          
@@ -235,7 +428,6 @@ static void setup()
   	ADCSRB= 0x00;			//Configuring free running mode
   	ADCSRA |= (1<<ADSC)|(1<<ADATE);   //Start ADC conversion and enabling Auto trigger
 
-
   	fast_blink(5);
 
 	load_saved_frequency();
@@ -248,10 +440,9 @@ static void setup()
 
 static uint16_t adc_avg(void)
 {
-	const uint8_t adc_samples = 16;
+	const uint8_t adc_samples = 16; /* keep this powers of 2 otherwise the division is no longer a bit shift */
 	uint16_t adc_val = 0;
 	uint16_t adc_l;
-	/* keep this powers of 2 otherwise the division is no longer a bit shift */
 
 	for(uint8_t i = 0; i < adc_samples; i++)
 	{
@@ -263,12 +454,25 @@ static uint16_t adc_avg(void)
 }
 
 
+/* minus 1 since the table is 0 zero based */
+#define FIRST_TOGGLE (7-1)
+#define SECOND_TOGGLE (3-1)
+
+
+static inline bool compare_adc(const uint16_t adc_val, const uint16_t adc2_val, const uint16_t start, const uint16_t end)
+{
+	if((adc_val >= start && adc_val <= end) && (adc2_val >= start && adc2_val <= end))
+		return true;
+	else
+		return false;
+}
+
 
 static void loop() 
 {
 	uint16_t adc_val;
 	uint16_t adc2_val;
-
+	uint8_t mode = MODE_IDLE; 
 
 	while(1)
 	{
@@ -276,22 +480,58 @@ static void loop()
 		_delay_ms(500);
 		adc2_val = adc_avg();
 		
-		for(uint8_t x = 0; x < sizeof(freq_table)/sizeof(struct frequencies); x++)
+		switch(mode)
 		{
-			/* do both samples agree */
-			if((adc_val >= freq_table[x].start && adc_val <= freq_table[x].end) && (adc2_val >= freq_table[x].start && adc2_val <= freq_table[x].end))
+			case MODE_IDLE:
 			{
-				if(cur_freq == x)
+				/* toggle to channel 73  */
+				if(compare_adc(adc_val, adc2_val,  freq_table[FIRST_TOGGLE].start, freq_table[FIRST_TOGGLE].end))
 				{
-					_delay_ms(200);
-				} else {
-					change_frequency(x);
-					_delay_ms(2000); /* don't make any more changes for a wee bit */
+					/* got the first toggle, turn off the lights */
+					mode = MODE_HALFWAY;
+					fast_blink(3);
+					led_off();
 				}
-				continue;
+				break;
+			}
+			case MODE_HALFWAY: 
+			{
+				if(compare_adc(adc_val, adc2_val,  freq_table[SECOND_TOGGLE].start, freq_table[SECOND_TOGGLE].end))
+				{
+					mode = MODE_PROGRAM;
+					fast_blink(3);
+					led_off();
+					_delay_ms(6000);
+				}
+				break;
+			} 
+			case MODE_PROGRAM:
+			{
+				for(uint8_t x = 0; x < sizeof(freq_table)/sizeof(struct frequencies); x++)
+				{
+					/* do both samples agree */
+					if(compare_adc(adc_val, adc2_val,  freq_table[x].start, freq_table[x].end))
+					{
+						if(cur_freq == x)
+						{
+							_delay_ms(200);
+						} else {
+							change_frequency(x, true);
+							mode = MODE_IDLE;
+							led_on();
+							_delay_ms(2000); /* don't make any more changes for a wee bit */
+							break;
+						}
+					}
+				}
+				break;
+			}
+			default:
+			{
+				break;
 			}
 		}
-	}	
+	}
 }
 
 
@@ -302,7 +542,6 @@ ISR(TIMER0_COMPA_vect)
 
 int main(void)
 {
-//	do_blink(2);
 	setup();
 	loop();	
 }

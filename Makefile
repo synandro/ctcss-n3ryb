@@ -1,3 +1,5 @@
+#  avrdude -c usbtiny -p t85 -U lfuse:w:0xde:m -U hfuse:w:0xd7:m
+
 DEVICE      = attiny85
 ifdef CLOCK16
 EXTRA_FLAGS = -DSIXTEEN
@@ -15,7 +17,7 @@ EXTRA_FLAGS += -DRESET_ACTIVE
 endif
 EXTRA_FLAGS += -DF_CPU=8000000L -DCLOCK_SOURCE=6 
 
-COMPILE    = avr-gcc -save-temps=obj -Wall  -mmcu=$(DEVICE) -O3 -fverbose-asm  
+COMPILE    = avr-gcc -save-temps=obj -Wall  -mmcu=$(DEVICE) -Os -fverbose-asm  
 OBJS       = ctcss-n3ryb.o
 OUTNAME    := $(notdir $(patsubst %/,%,$(dir $(realpath $(firstword $(MAKEFILE_LIST))))))
 
