@@ -313,18 +313,18 @@ static uint8_t cur_freq;
 static uint8_t EEMEM saved_frequency = HZ_123;
 
 
-static inline void led_off(void)
+static inline  __attribute__((always_inline)) void led_off(void)
 {
 	PORTB &= ~(1 << PB0);
 }
 
-static inline void led_on(void)
+static inline __attribute__((always_inline)) void led_on(void)
 {
 	PORTB |= (1 << PB0);
 }
 
 
-static void fast_blink(const uint8_t count)
+static void __attribute__((noinline)) fast_blink(const uint8_t count)
 {
 	led_off();
 	_delay_ms(1000);
@@ -338,6 +338,17 @@ static void fast_blink(const uint8_t count)
 	led_on();
 
 }
+
+static void timeout_blink(void)
+{
+	fast_blink(2);
+	_delay_ms(200);
+	fast_blink(3);
+	_delay_ms(200);
+	fast_blink(2);
+	_delay_ms(500);
+}
+
 
 static void do_blink(uint8_t count)
 {
@@ -377,7 +388,7 @@ static void change_frequency(const uint8_t freq, bool save)
 static void load_saved_frequency(void)
 {
 	uint8_t f;
-	bool save false;
+	bool save = false;
 	f = eeprom_read_byte(&saved_frequency);
 	
 	/* corrupt eeprom? just turn ourselves off */
@@ -473,13 +484,14 @@ static void loop()
 	uint16_t adc_val;
 	uint16_t adc2_val;
 	uint8_t mode = MODE_IDLE; 
+	uint8_t halfway_count = 0;
 
 	while(1)
 	{
 		adc_val = adc_avg();
 		_delay_ms(500);
 		adc2_val = adc_avg();
-		
+		halfway_count++;		
 		switch(mode)
 		{
 			case MODE_IDLE:
@@ -489,6 +501,7 @@ static void loop()
 				{
 					/* got the first toggle, turn off the lights */
 					mode = MODE_HALFWAY;
+					halfway_count = 1;
 					fast_blink(3);
 					led_off();
 				}
@@ -499,11 +512,14 @@ static void loop()
 				if(compare_adc(adc_val, adc2_val,  freq_table[SECOND_TOGGLE].start, freq_table[SECOND_TOGGLE].end))
 				{
 					mode = MODE_PROGRAM;
+					halfway_count = 0;
 					fast_blink(3);
 					led_off();
 					_delay_ms(6000);
+					break;
 				}
 				break;
+				
 			} 
 			case MODE_PROGRAM:
 			{
@@ -530,6 +546,14 @@ static void loop()
 			{
 				break;
 			}
+			
+		}
+		
+		if(halfway_count == 8 && mode != MODE_IDLE)
+		{
+			mode = MODE_IDLE;
+			halfway_count = 0;
+			timeout_blink();
 		}
 	}
 }
