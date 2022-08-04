@@ -35,7 +35,7 @@ enum {
 	/* these are (Hz * 8) but experimentally checked to be on frequency */
 
 	MULT_77 = 618,
-	MULT_100 = 807,
+	MULT_100 = 800,
 	MULT_103_5 = 828,
 	MULT_118_8 = 949,
 	MULT_123 = 984,
@@ -134,6 +134,7 @@ enum {
 
 struct frequencies 
 {
+	const char *tone;
 	const uint16_t mult;
 	const uint16_t start;
 	const uint16_t end;
@@ -220,17 +221,17 @@ INDEX=114 R2=51000 R1=680000 vout = 0.558139534883721 index= 114
 */
 
 static const struct frequencies freq_table[] = {
-	{ /* .tone = "100", */	.mult = MULT_100, 	.start = 950,	.end = 1024,	.channel = 1	},
-	{ /*.tone = "103.5",*/	.mult = MULT_103_5, 	.start = 860,	.end = 920,	.channel = 2	},
-	{ /*.tone = "118.5",*/	.mult = MULT_118_8, 	.start = 751,	.end = 860,	.channel = 3	},
-	{ /*.tone = "123",*/	.mult = MULT_123, 	.start = 651,	.end = 750,	.channel = 4	},
-	{ /*.tone = "127.3",*/	.mult = MULT_127_3, 	.start = 550,	.end = 650,	.channel = 5 	},
-	{ /*.tone = "131.8",*/	.mult = MULT_131_8, 	.start = 450,	.end = 550,	.channel = 6 	},
-	{ /*.tone = "141.3",*/	.mult = MULT_141_3, 	.start = 330,	.end = 450,	.channel = 7	},
-	{ /*.tone = "146.2",*/	.mult = MULT_146_2, 	.start = 300,	.end = 329,	.channel = 8	},
-	{ /*.tone = "167.9",*/	.mult = MULT_167_9, 	.start = 200,	.end = 299,	.channel = 9 	},
-	{ /*.tone = "179.9",*/	.mult = MULT_179_9, 	.start = 130,	.end = 200,	.channel = 10	},
-	{ /* .tone = "0", */	.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
+	{ .tone = "100", 	.mult = MULT_100, 	.start = 950,	.end = 1024,	.channel = 1	},
+	{ .tone = "103.5",	.mult = MULT_103_5, 	.start = 860,	.end = 920,	.channel = 2	},
+	{ .tone = "118.5",	.mult = MULT_118_8, 	.start = 751,	.end = 860,	.channel = 3	},
+	{ .tone = "123",	.mult = MULT_123, 	.start = 651,	.end = 750,	.channel = 4	},
+	{ .tone = "127.3",	.mult = MULT_127_3, 	.start = 550,	.end = 650,	.channel = 5 	},
+	{ .tone = "131.8",	.mult = MULT_131_8, 	.start = 450,	.end = 550,	.channel = 6 	},
+	{ .tone = "141.3",	.mult = MULT_141_3, 	.start = 330,	.end = 450,	.channel = 7	},
+	{ .tone = "146.2",	.mult = MULT_146_2, 	.start = 300,	.end = 329,	.channel = 8	},
+	{ .tone = "167.9",	.mult = MULT_167_9, 	.start = 200,	.end = 299,	.channel = 9 	},
+	{ .tone = "179.9",	.mult = MULT_179_9, 	.start = 130,	.end = 200,	.channel = 10	},
+	{ .tone = "0", 		.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
 };
 
 
@@ -411,7 +412,7 @@ static void load_saved_frequency(void)
 		save = true;
 	}
 #endif
-	f = HZ_100;
+	f = HZ_103_5;
 	change_frequency(f, save);
 //	cur_mult = 200;
 //	cur_mult = 1;
@@ -474,19 +475,6 @@ static void uart_init(void)
 #warning "atmega8"
 #endif
 
-// we use timer4
-/*
-OC0A, Output Compare Match A output: The PB7 pin can 
-serve as an external output for the Timer/Counter0 
-Output Compare. The pin has to be configured as an output (DDB7 set “one”) to serve this function. The OC0A 
-pin is also the output pin for the PWM mode timer function.
-OC1C, Output Compare Match C output: The PB7 pin can se
-rve as an external output
- for the Timer/Counter1 
-Output Compare C. The pin has to be configured as an output (DDB7 set “one”) to serve this function. The 
-OC1C pin is also the output pin for the PWM mode timer function.
-PCINT7, Pin Change Interrupt source 7: The PB7 pin can serve as an external interrupt sour
-*/
 static void setup_pwm(void)
 {
 	TIMSK0 = 0;
@@ -496,7 +484,7 @@ static void setup_pwm(void)
 	cli();
 
 //	OCR1A = 121;
-//	OCR0A = 61;
+//
 //	OCR1B = 121;
 //	ICR1 = 66;
 
@@ -510,9 +498,9 @@ static void setup_pwm(void)
 //	OCR4B = 60;
 
 	TCCR0A = _BV(COM1B0) | _BV(WGM00) | _BV(WGM01);
-	TCCR0B = _BV(WGM02) | _BV(CS10);
+	TCCR0B = _BV(WGM02) | _BV(CS01);
 	TIMSK0 = _BV(OCIE0A);		
-	OCR0A = 120;
+	OCR0A = 243;
 #endif
 	DDRB |= (1 << PB7); 
 	DDRB |= (1 << PB5); 
@@ -580,11 +568,12 @@ static void setup()
   	{
   		_delay_ms(1000);
   		printf("fired_interrupt: %lu %u %u timer1_count: %u\n", fired_interrupt, counter, cur_mult,timer1_interrupt);
-#if 0
+#if 1
 	        for(uint8_t x = 0; x < sizeof(freq_table)/sizeof(struct frequencies) - 1; x++)
 	        {
+	        	printf("Changing frequency to tone: %s x:%u mult: %u\n", freq_table[x].tone, x, freq_table[x].mult); 
                 	change_frequency(x, false);
-	                _delay_ms(5000);
+	                _delay_ms(10000);
 		}
 #endif
 //  		loop_all();
