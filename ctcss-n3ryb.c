@@ -478,30 +478,20 @@ static void uart_init(void)
 static void setup_pwm(void)
 {
 	TIMSK0 = 0;
-//	TIMSK1 = 0;
-
-//	TCCR0A = 
 	cli();
 
-//	OCR1A = 121;
-//
-//	OCR1B = 121;
-//	ICR1 = 66;
-
-//	OCR4A = 60;
 	OCR4B = 120;
 
 	TCCR4A = _BV(WGM40) | _BV(WGM41) | _BV(COM4B0);
 	TCCR4B = _BV(CS40);
 	
-#if 1
-//	OCR4B = 60;
 
 	TCCR0A = _BV(COM1B0) | _BV(WGM00) | _BV(WGM01);
 	TCCR0B = _BV(WGM02) | _BV(CS01);
 	TIMSK0 = _BV(OCIE0A);		
 	OCR0A = 243;
-#endif
+
+
 	DDRB |= (1 << PB7); 
 	DDRB |= (1 << PB5); 
 	DDRB |= (1 << PB6); 
@@ -521,15 +511,14 @@ static void setup()
 	printf("Starting up and enabling PLL\n");
 	PLLFRQ = _BV(PLLUSB) | _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1) ;
 	PLLCSR = _BV(PINDIV) | _BV(PLLE);
+	/* shut off the USB controller before we enabled interrupts again */
+	USBCON = 0;
 
-//	PLLCSR = 1<<PCKE | 1<<PLLE;     
 	while((PLLCSR & (1<<PLOCK)) == 0)
 	{
 		printf("ctcss-n3ryb - waiting for PLL lock\n");	
 	}
 	printf("ctcss-n3ryb is awake\n");
-	// this is needed otherwise enabling interrupts go kaput 
-	USBCON = 0;
 	
 	printf("setting up pwm timers\n");
 
@@ -567,7 +556,7 @@ static void setup()
   	while(1)
   	{
   		_delay_ms(1000);
-  		printf("fired_interrupt: %lu %u %u timer1_count: %u\n", fired_interrupt, counter, cur_mult,timer1_interrupt);
+  		printf("interrupt count: %lu conter:%u current_multiplier: %u timer4_interrupts: %u\n", fired_interrupt, counter, cur_mult,timer1_interrupt);
 #if 1
 	        for(uint8_t x = 0; x < sizeof(freq_table)/sizeof(struct frequencies) - 1; x++)
 	        {
@@ -695,7 +684,7 @@ static void loop()
 	}
 }
 
-ISR(TIMER1_COMPA_vect)
+ISR(TIMER4_COMPA_vect)
 {
 	timer1_interrupt++;	
 }
