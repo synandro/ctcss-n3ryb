@@ -510,7 +510,7 @@ static void setup_pwm(void)
 //	OCR4B = 60;
 
 	TCCR0A = _BV(COM1B0) | _BV(WGM00) | _BV(WGM01);
-	TCCR0B = _BV(WGM02) | _BV(CS00);
+	TCCR0B = _BV(WGM02) | _BV(CS10);
 	TIMSK0 = _BV(OCIE0A);		
 	OCR0A = 120;
 #endif
