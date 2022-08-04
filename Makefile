@@ -2,7 +2,9 @@
 
 
 
-DEVICE      = attiny85
+#DEVICE      = attiny85
+CLOCK16 = 1
+DEVICE = atmega32u4
 ifdef CLOCK16
 EXTRA_FLAGS = -DSIXTEEN
 CLOCK       = 16000000
@@ -17,7 +19,7 @@ endif
 ifdef RESET_ACTIVE
 EXTRA_FLAGS += -DRESET_ACTIVE
 endif
-EXTRA_FLAGS += -DF_CPU=8000000L -DCLOCK_SOURCE=6 
+# EXTRA_FLAGS += -DF_CPU=8000000L -DCLOCK_SOURCE=6 
 
 COMPILE    = avr-gcc -save-temps=obj -Wall  -mmcu=$(DEVICE) -Os -finline-functions -fverbose-asm  
 OBJS       = ctcss-n3ryb.o
@@ -26,11 +28,25 @@ OUTNAME    := $(notdir $(patsubst %/,%,$(dir $(realpath $(firstword $(MAKEFILE_L
 
 all: $(OUTNAME).hex Makefile
 
+# ctcss-n3ryb: 
+
+all-1: test-serial.hex
+
+
+#test-serial: test-serial.elf
+
+#test-serial.hex: test-serial
+
+
 install: $(OUTNAME).hex
 	micronucleus $^
 
 install-avr: $(OUTNAME).hex
 	avrdude -p t85 -c usbtiny -v -U flash:w:$^
+
+install-micro: $(OUTNAME).hex
+	 avrdude -c avr109 -p m32u4 -P /dev/ttyACM0 -v -U flash:w:$^
+
 # fuse.txt: Makefile
 ifdef CLOCK16 
 	echo "fuses_lo = 0x00f1" > fuse.txt
@@ -46,12 +62,12 @@ endif
 	echo "lock_byte = 0x00ff" >> fuse.txt
 
 
-$(OUTNAME).bin: $(OUTNAME).elf
+%.bin: %.elf
 	rm -f $@ $(basename $@).eep
 	avr-objcopy -O ihex -j .eeprom --set-section-flags=.eeprom=alloc,load --no-change-warnings --change-section-lma .eeprom=0  $^ $(basename $@).eep
 	avr-objcopy -O binary -R .eeprom  $^ $@
 
-$(OUTNAME).hex: $(OUTNAME).elf
+%.hex: %.elf
 	rm -f $@
 	avr-objcopy -j .text -j .data -O ihex $^ $@
 
@@ -60,7 +76,7 @@ clean:
 	rm -f *.elf *.bin *.hex *.map *.eep
 	rm -f fuse.txt
 
-$(OUTNAME).elf: $(OBJS)
+%.elf: %.o
 	$(COMPILE) -Wall -Wextra  -Wl,--gc-sections -Wl,-Map,$(basename $@).map -o $@ $^
 	avr-size $@ -C --mcu=$(DEVICE)
 

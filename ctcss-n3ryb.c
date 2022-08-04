@@ -1,3 +1,7 @@
+#define F_CPU 16000000UL
+#define BAUD 9600
+
+
 #include <stdint.h>
 #include <util/delay.h>
 #include <avr/pgmspace.h>
@@ -5,7 +9,15 @@
 #include <avr/eeprom.h>
 #include <stdbool.h>
 
+
+#include <avr/io.h>
+#include <util/setbaud.h>
+#include <stdio.h>
+
+
 // #define TESTING 1
+
+static volatile uint32_t fired_interrupt = 0;
 
 
 /* the different states we can be in.  start in idle mode  */
@@ -389,13 +401,16 @@ static void load_saved_frequency(void)
 {
 	uint8_t f;
 	bool save = false;
+#if 0
 	f = eeprom_read_byte(&saved_frequency);
-	
+		
 	/* corrupt eeprom? just turn ourselves off */
 	if(f > HZ_NONE) {
 		f = HZ_NONE;
 		save = true;
 	}
+#endif
+	f = HZ_123;
 	change_frequency(f, save);
 }
 
@@ -411,14 +426,105 @@ static void loop_all(void)
 }
 #endif
 
+// FILE uart_io FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW)
+
+static int uart_putchar(char c, FILE *stream) 
+{
+    if (c == '\n') {
+        uart_putchar('\r', stream);
+    }
+    loop_until_bit_is_set(UCSR1A, UDRE1);
+    UDR1 = c;
+    return c;
+}
+
+int uart_getchar(FILE *stream) 
+{
+    loop_until_bit_is_set(UCSR1A, RXC1); /* Wait until data exists. */
+    return UDR1;
+}
+
+
+
+FILE uart_output = FDEV_SETUP_STREAM(uart_putchar, NULL, _FDEV_SETUP_WRITE);
+FILE uart_input = FDEV_SETUP_STREAM(NULL, uart_getchar, _FDEV_SETUP_READ);
+
+static void uart_init(void) 
+{
+    UBRR1H = UBRRH_VALUE;
+    UBRR1L = UBRRL_VALUE;
+
+#if USE_2X
+    UCSR1A |= _BV(U2X1);
+#else
+    UCSR1A &= ~(_BV(U2X1));
+#endif
+
+    UCSR1C = _BV(UCSZ11) | _BV(UCSZ10); /* 8-bit data */
+    UCSR1B = _BV(RXEN1) | _BV(TXEN1);   /* Enable RX and TX */
+    stdout = &uart_output;
+    stdin  = &uart_input;
+
+}
+
+#if defined(__AVR_ATmega1280__)
+#warning "atmega8"
+#endif
+
+// we use timer3 
+
+static void setup_pwm(void)
+{
+	TIMSK0 = 0;
+	TIMSK1 = 0;
+//	DDRB |= (1 << PB7); // digital pin 11?
+	DDRD |= (1 << PD6); 
+	DDRB |= (1 << PB5); 
+	TCCR0A = 3<<WGM00;
+	TCCR0B = 1<<WGM02 | 2<<CS00;
+	TIMSK0 = 1 << OCIE0A;		
+	OCR3A = 121;
+	
+	TCCR3A = 0;
+	TCCR3B = 0;
+	
+	TCCR3A =  _BV(COM3A1) | _BV(WGM31);
+	TCCR3B = _BV(WGM32) | _BV(WGM33) | _BV(CS31);
+	TCNT3 = 0;
+	
+//	TCCR3A = 1<<PWM1A | 2<<COM1A0 | 1<<CS10;
+	//TCCR3B = 
+
+//	TCCR1A = 2<<COM1A0 | 1<<CS10 | 1 << WGM10;
+//	TIMSK1 = 1 << 
+}
+
+
 
 static void setup() 
 {
-	PLLCSR = 1<<PCKE | 1<<PLLE;     
+	cli();
+	uart_init();
 
-	_delay_ms(200); /* give the PLL a chance to spin up */
+	printf("Starting up and enabling PLL\n");
+	PLLFRQ = _BV(PLLUSB) | _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1);
+	PLLCSR = _BV(PINDIV) | _BV(PLLE);
 
+//	PLLCSR = 1<<PCKE | 1<<PLLE;     
+	while((PLLCSR & (1<<PLOCK)) == 0)
+	{
+		printf("ctcss-n3ryb - waiting for PLL lock\n");	
+	}
+	printf("ctcss-n3ryb is awake\n");
+	// this is needed otherwise enabling interrupts go kaput 
+	USBCON = 0;
+	
+	printf("setting up pwm timers\n");
 
+	setup_pwm();
+		
+	printf("timers have been setup\n");	
+#if 0
 	TIMSK = 0;                          
 	TCCR1 = 1<<PWM1A | 2<<COM1A0 | 1<<CS10;
 
@@ -440,9 +546,19 @@ static void setup()
   	ADCSRA |= (1<<ADSC)|(1<<ADATE);   //Start ADC conversion and enabling Auto trigger
 
   	fast_blink(5);
-
+#endif
+	printf("loading saved frequencies\n");
 	load_saved_frequency();
+	printf("Enabling interrupts\n");
   	sei();
+  	printf("Enabled interrupts successfully\n");
+  	while(1)
+  	{
+  		_delay_ms(300);
+  		printf("fired_interrupt: %lu %u %u %u\n", fired_interrupt, OCR3A, counter, cur_mult);
+  	}
+
+
 #ifdef TESTING	
 	loop_all();
 #endif
@@ -559,9 +675,11 @@ static void loop()
 }
 
 
+
 ISR(TIMER0_COMPA_vect) 
 {
-	OCR1A = sine_wave[((counter += cur_mult) >> 8)];
+	fired_interrupt++;
+	OCR3A = sine_wave[((counter += cur_mult) >> 8)];
 }
 
 int main(void)
