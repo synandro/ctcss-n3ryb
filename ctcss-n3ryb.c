@@ -18,6 +18,7 @@
 // #define TESTING 1
 
 static volatile uint32_t fired_interrupt = 0;
+static volatile uint32_t timer1_interrupt = 0;
 
 
 /* the different states we can be in.  start in idle mode  */
@@ -410,8 +411,10 @@ static void load_saved_frequency(void)
 		save = true;
 	}
 #endif
-	f = HZ_123;
+	f = HZ_100;
 	change_frequency(f, save);
+//	cur_mult = 200;
+//	cur_mult = 1;
 }
 
 #ifdef TESTING
@@ -471,32 +474,53 @@ static void uart_init(void)
 #warning "atmega8"
 #endif
 
-// we use timer3 
-
+// we use timer4
+/*
+OC0A, Output Compare Match A output: The PB7 pin can 
+serve as an external output for the Timer/Counter0 
+Output Compare. The pin has to be configured as an output (DDB7 set “one”) to serve this function. The OC0A 
+pin is also the output pin for the PWM mode timer function.
+OC1C, Output Compare Match C output: The PB7 pin can se
+rve as an external output
+ for the Timer/Counter1 
+Output Compare C. The pin has to be configured as an output (DDB7 set “one”) to serve this function. The 
+OC1C pin is also the output pin for the PWM mode timer function.
+PCINT7, Pin Change Interrupt source 7: The PB7 pin can serve as an external interrupt sour
+*/
 static void setup_pwm(void)
 {
 	TIMSK0 = 0;
-	TIMSK1 = 0;
-//	DDRB |= (1 << PB7); // digital pin 11?
-	DDRD |= (1 << PD6); 
-	DDRB |= (1 << PB5); 
-	TCCR0A = 3<<WGM00;
-	TCCR0B = 1<<WGM02 | 2<<CS00;
-	TIMSK0 = 1 << OCIE0A;		
-	OCR3A = 121;
-	
-	TCCR3A = 0;
-	TCCR3B = 0;
-	
-	TCCR3A =  _BV(COM3A1) | _BV(WGM31);
-	TCCR3B = _BV(WGM32) | _BV(WGM33) | _BV(CS31);
-	TCNT3 = 0;
-	
-//	TCCR3A = 1<<PWM1A | 2<<COM1A0 | 1<<CS10;
-	//TCCR3B = 
+//	TIMSK1 = 0;
 
-//	TCCR1A = 2<<COM1A0 | 1<<CS10 | 1 << WGM10;
-//	TIMSK1 = 1 << 
+//	TCCR0A = 
+	cli();
+
+//	OCR1A = 121;
+//	OCR0A = 61;
+//	OCR1B = 121;
+//	ICR1 = 66;
+
+//	OCR4A = 60;
+	OCR4B = 120;
+
+	TCCR4A = _BV(WGM40) | _BV(WGM41) | _BV(COM4B0);
+	TCCR4B = _BV(CS40);
+	
+#if 1
+//	OCR4B = 60;
+
+	TCCR0A = _BV(COM1B0) | _BV(WGM00) | _BV(WGM01);
+	TCCR0B = _BV(WGM02) | _BV(CS00);
+	TIMSK0 = _BV(OCIE0A);		
+	OCR0A = 120;
+#endif
+	DDRB |= (1 << PB7); 
+	DDRB |= (1 << PB5); 
+	DDRB |= (1 << PB6); 
+
+
+//	sei();
+	
 }
 
 
@@ -507,7 +531,7 @@ static void setup()
 	uart_init();
 
 	printf("Starting up and enabling PLL\n");
-	PLLFRQ = _BV(PLLUSB) | _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1);
+	PLLFRQ = _BV(PLLUSB) | _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1) ;
 	PLLCSR = _BV(PINDIV) | _BV(PLLE);
 
 //	PLLCSR = 1<<PCKE | 1<<PLLE;     
@@ -531,7 +555,7 @@ static void setup()
 	TCCR0A = 3<<WGM00;               
 	TCCR0B = 1<<WGM02 | 2<<CS00;      
   	TIMSK = 1<<OCIE0A;                
-  	OCR0A = 121;
+  	OCR1A = 255;
 
 	DDRB |= (1 << PB1);  // PB1 direction to output - this is our pwm output
 
@@ -554,8 +578,16 @@ static void setup()
   	printf("Enabled interrupts successfully\n");
   	while(1)
   	{
-  		_delay_ms(300);
-  		printf("fired_interrupt: %lu %u %u %u\n", fired_interrupt, OCR3A, counter, cur_mult);
+  		_delay_ms(1000);
+  		printf("fired_interrupt: %lu %u %u timer1_count: %u\n", fired_interrupt, counter, cur_mult,timer1_interrupt);
+#if 0
+	        for(uint8_t x = 0; x < sizeof(freq_table)/sizeof(struct frequencies) - 1; x++)
+	        {
+                	change_frequency(x, false);
+	                _delay_ms(5000);
+		}
+#endif
+//  		loop_all();
   	}
 
 
@@ -674,12 +706,17 @@ static void loop()
 	}
 }
 
-
+ISR(TIMER1_COMPA_vect)
+{
+	timer1_interrupt++;	
+}
 
 ISR(TIMER0_COMPA_vect) 
 {
 	fired_interrupt++;
-	OCR3A = sine_wave[((counter += cur_mult) >> 8)];
+//	cur_mult = 100;
+//	OCR1A = (counter += 1000) >> 8;
+	OCR4B = sine_wave[((counter += cur_mult) >> 8)];
 }
 
 int main(void)
