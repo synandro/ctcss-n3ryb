@@ -15,11 +15,6 @@
 #include <stdio.h>
 
 
-// #define TESTING 1
-
-static volatile uint32_t fired_interrupt = 0;
-static volatile uint32_t timer1_interrupt = 0;
-
 
 /* the different states we can be in.  start in idle mode  */
 enum {
@@ -134,7 +129,7 @@ enum {
 
 struct frequencies 
 {
-	const char *tone;
+	/* const char *tone; */
 	const uint16_t mult;
 	const uint16_t start;
 	const uint16_t end;
@@ -221,17 +216,17 @@ INDEX=114 R2=51000 R1=680000 vout = 0.558139534883721 index= 114
 */
 
 static const struct frequencies freq_table[] = {
-	{ .tone = "100", 	.mult = MULT_100, 	.start = 950,	.end = 1024,	.channel = 1	},
-	{ .tone = "103.5",	.mult = MULT_103_5, 	.start = 860,	.end = 920,	.channel = 2	},
-	{ .tone = "118.5",	.mult = MULT_118_8, 	.start = 751,	.end = 860,	.channel = 3	},
-	{ .tone = "123",	.mult = MULT_123, 	.start = 651,	.end = 750,	.channel = 4	},
-	{ .tone = "127.3",	.mult = MULT_127_3, 	.start = 550,	.end = 650,	.channel = 5 	},
-	{ .tone = "131.8",	.mult = MULT_131_8, 	.start = 450,	.end = 550,	.channel = 6 	},
-	{ .tone = "141.3",	.mult = MULT_141_3, 	.start = 330,	.end = 450,	.channel = 7	},
-	{ .tone = "146.2",	.mult = MULT_146_2, 	.start = 300,	.end = 329,	.channel = 8	},
-	{ .tone = "167.9",	.mult = MULT_167_9, 	.start = 200,	.end = 299,	.channel = 9 	},
-	{ .tone = "179.9",	.mult = MULT_179_9, 	.start = 130,	.end = 200,	.channel = 10	},
-	{ .tone = "0", 		.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
+	{ /*.tone = "100",*/	.mult = MULT_100, 	.start = 950,	.end = 1024,	.channel = 1	},
+	{ /*.tone = "103.5",*/	.mult = MULT_103_5, 	.start = 860,	.end = 920,	.channel = 2	},
+	{ /*.tone = "118.5",*/	.mult = MULT_118_8, 	.start = 751,	.end = 860,	.channel = 3	},
+	{ /*.tone = "123",  */	.mult = MULT_123, 	.start = 651,	.end = 750,	.channel = 4	},
+	{ /*.tone = "127.3",*/	.mult = MULT_127_3, 	.start = 550,	.end = 650,	.channel = 5 	},
+	{ /*.tone = "131.8",*/	.mult = MULT_131_8, 	.start = 450,	.end = 550,	.channel = 6 	},
+	{ /*.tone = "141.3",*/	.mult = MULT_141_3, 	.start = 330,	.end = 450,	.channel = 7	},
+	{ /*.tone = "146.2",*/	.mult = MULT_146_2, 	.start = 300,	.end = 329,	.channel = 8	},
+	{ /*.tone = "167.9",*/	.mult = MULT_167_9, 	.start = 200,	.end = 299,	.channel = 9 	},
+	{ /*.tone = "179.9",*/	.mult = MULT_179_9, 	.start = 130,	.end = 200,	.channel = 10	},
+	{ /*.tone = "0", */		.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
 };
 
 
@@ -318,8 +313,6 @@ static const uint8_t sine_wave[256] = {
 
 
 
-
-
 static uint16_t cur_mult;
 static uint16_t counter;
 static uint8_t cur_freq;
@@ -403,7 +396,7 @@ static void load_saved_frequency(void)
 {
 	uint8_t f;
 	bool save = false;
-#if 0
+
 	f = eeprom_read_byte(&saved_frequency);
 		
 	/* corrupt eeprom? just turn ourselves off */
@@ -411,11 +404,8 @@ static void load_saved_frequency(void)
 		f = HZ_NONE;
 		save = true;
 	}
-#endif
 	f = HZ_103_5;
 	change_frequency(f, save);
-//	cur_mult = 200;
-//	cur_mult = 1;
 }
 
 #ifdef TESTING
@@ -430,7 +420,7 @@ static void loop_all(void)
 }
 #endif
 
-// FILE uart_io FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW)
+
 
 static int uart_putchar(char c, FILE *stream) 
 {
@@ -471,14 +461,9 @@ static void uart_init(void)
 
 }
 
-#if defined(__AVR_ATmega1280__)
-#warning "atmega8"
-#endif
-
 static void setup_pwm(void)
 {
 	TIMSK0 = 0;
-	cli();
 
 	OCR4B = 120;
 
@@ -491,14 +476,9 @@ static void setup_pwm(void)
 	TIMSK0 = _BV(OCIE0A);		
 	OCR0A = 243;
 
-
-	DDRB |= (1 << PB7); 
-	DDRB |= (1 << PB5); 
+	//DDRB |= (1 << PB7); 
+	//DDRB |= (1 << PB5); 
 	DDRB |= (1 << PB6); 
-
-
-//	sei();
-	
 }
 
 
@@ -511,63 +491,36 @@ static void setup()
 	printf("Starting up and enabling PLL\n");
 	PLLFRQ = _BV(PLLUSB) | _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1) ;
 	PLLCSR = _BV(PINDIV) | _BV(PLLE);
-	/* shut off the USB controller before we enabled interrupts again */
+	/* shut off the USB controller before we enable interrupts again - we'll go splat otherwise */
 	USBCON = 0;
 
 	while((PLLCSR & (1<<PLOCK)) == 0)
 	{
 		printf("ctcss-n3ryb - waiting for PLL lock\n");	
 	}
-	printf("ctcss-n3ryb is awake\n");
+
 	
 	printf("setting up pwm timers\n");
-
 	setup_pwm();
-		
+	
 	printf("timers have been setup\n");	
-#if 0
-	TIMSK = 0;                          
-	TCCR1 = 1<<PWM1A | 2<<COM1A0 | 1<<CS10;
 
-	TCCR0A = 3<<WGM00;               
-	TCCR0B = 1<<WGM02 | 2<<CS00;      
-  	TIMSK = 1<<OCIE0A;                
-  	OCR1A = 255;
-
-	DDRB |= (1 << PB1);  // PB1 direction to output - this is our pwm output
-
-  	DDRB &= ~(1 << DDB3); 
-  	PORTB |= (1 << PORTB2);	/* activate internal pull-up resistor for PB3 */
-  	DDRB |= (1 << PB0);	// PB0 direction to output too
-  	PORTB |= (1 << PB0);	// turn the led on 
-  	
-  	ADCSRA |= (1<<ADEN);      //Enable ADC module
-  	ADMUX= 0x01;		// configuring PB2 to take input
-  	ADCSRB= 0x00;			//Configuring free running mode
-  	ADCSRA |= (1<<ADSC)|(1<<ADATE);   //Start ADC conversion and enabling Auto trigger
-
-  	fast_blink(5);
-#endif
 	printf("loading saved frequencies\n");
 	load_saved_frequency();
 	printf("Enabling interrupts\n");
   	sei();
   	printf("Enabled interrupts successfully\n");
+
   	while(1)
   	{
   		_delay_ms(1000);
-  		printf("interrupt count: %lu conter:%u current_multiplier: %u timer4_interrupts: %u\n", fired_interrupt, counter, cur_mult,timer1_interrupt);
-#if 1
 	        for(uint8_t x = 0; x < sizeof(freq_table)/sizeof(struct frequencies) - 1; x++)
 	        {
-	        	printf("Changing frequency to tone: %s x:%u mult: %u\n", freq_table[x].tone, x, freq_table[x].mult); 
+	        	printf("Changing frequency to tone x:%u mult: %u\n", x, freq_table[x].mult); 
                 	change_frequency(x, false);
 	                _delay_ms(10000);
 		}
-#endif
-//  		loop_all();
   	}
-
 
 #ifdef TESTING	
 	loop_all();
@@ -684,16 +637,8 @@ static void loop()
 	}
 }
 
-ISR(TIMER4_COMPA_vect)
-{
-	timer1_interrupt++;	
-}
-
 ISR(TIMER0_COMPA_vect) 
 {
-	fired_interrupt++;
-//	cur_mult = 100;
-//	OCR1A = (counter += 1000) >> 8;
 	OCR4B = sine_wave[((counter += cur_mult) >> 8)];
 }
 
