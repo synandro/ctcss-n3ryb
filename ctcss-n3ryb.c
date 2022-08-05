@@ -429,9 +429,6 @@ static void loop_all(void)
 
 static int uart_putchar(char c, FILE *stream) 
 {
-    if (c == '\n') {
-        uart_putchar('\r', stream);
-    }
     loop_until_bit_is_set(UCSR1A, UDRE1);
     UDR1 = c;
     return c;
@@ -495,35 +492,35 @@ static void setup()
 #ifdef DEBUG
 	uart_init();
 #endif
-	dprintf("Starting up and enabling PLL\n");
-	PLLFRQ = _BV(PLLUSB) | _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1) ;
+	dprintf("Starting up and enabling PLL\r\n");
+	PLLFRQ = _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1) ;
 	PLLCSR = _BV(PINDIV) | _BV(PLLE);
 	/* shut off the USB controller before we enable interrupts again - we'll go splat otherwise */
 	USBCON = 0;
 
 	while((PLLCSR & (1<<PLOCK)) == 0)
 	{
-		dprintf("ctcss-n3ryb - waiting for PLL lock\n");	
+		dprintf("ctcss-n3ryb - waiting for PLL lock\r\n");	
 	}
 
 	
-	dprintf("setting up pwm timers\n");
+	dprintf("setting up pwm timers\r\n");
 	setup_pwm();
 	
-	dprintf("timers have been setup\n");	
+	dprintf("timers have been setup\r\n");	
 
-	dprintf("loading saved frequencies\n");
+	dprintf("loading saved frequencies\r\n");
 	load_saved_frequency();
-	dprintf("Enabling interrupts\n");
+	dprintf("Enabling interrupts\r\n");
   	sei();
-  	dprintf("Enabled interrupts successfully\n");
+  	dprintf("Enabled interrupts successfully\r\n");
 
   	while(1)
   	{
   		_delay_ms(1000);
 	        for(uint8_t x = 0; x < sizeof(freq_table)/sizeof(struct frequencies) - 1; x++)
 	        {
-	        	dprintf("Changing frequency to tone x:%u mult: %u\n", x, freq_table[x].mult); 
+	        	dprintf("Changing frequency to tone x:%u mult: %u\r\n", x, freq_table[x].mult); 
                 	change_frequency(x, false);
 	                _delay_ms(10000);
 		}
