@@ -14,8 +14,8 @@
 #include <util/setbaud.h>
 #include <stdio.h>
 
-#define TEST 1
-#ifdef TEST
+#define DEBUG 1
+#ifdef DEBUG
 #define dprintf(...) printf(__VA_ARGS__)
 #else
 #define dprintf(...)
@@ -425,7 +425,7 @@ static void loop_all(void)
 }
 #endif
 
-
+#ifdef DEBUG
 
 static int uart_putchar(char c, FILE *stream) 
 {
@@ -465,6 +465,7 @@ static void uart_init(void)
     stdin  = &uart_input;
 
 }
+#endif 
 
 static void setup_pwm(void)
 {
@@ -491,8 +492,9 @@ static void setup_pwm(void)
 static void setup() 
 {
 	cli();
+#ifdef DEBUG
 	uart_init();
-
+#endif
 	dprintf("Starting up and enabling PLL\n");
 	PLLFRQ = _BV(PLLUSB) | _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1) ;
 	PLLCSR = _BV(PINDIV) | _BV(PLLE);
