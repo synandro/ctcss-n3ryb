@@ -14,7 +14,12 @@
 #include <util/setbaud.h>
 #include <stdio.h>
 
-
+#define TEST 1
+#ifdef TEST
+#define dprintf(...) printf(__VA_ARGS__)
+#else
+#define dprintf(...)
+#endif
 
 /* the different states we can be in.  start in idle mode  */
 enum {
@@ -488,7 +493,7 @@ static void setup()
 	cli();
 	uart_init();
 
-	printf("Starting up and enabling PLL\n");
+	dprintf("Starting up and enabling PLL\n");
 	PLLFRQ = _BV(PLLUSB) | _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1) ;
 	PLLCSR = _BV(PINDIV) | _BV(PLLE);
 	/* shut off the USB controller before we enable interrupts again - we'll go splat otherwise */
@@ -496,27 +501,27 @@ static void setup()
 
 	while((PLLCSR & (1<<PLOCK)) == 0)
 	{
-		printf("ctcss-n3ryb - waiting for PLL lock\n");	
+		dprintf("ctcss-n3ryb - waiting for PLL lock\n");	
 	}
 
 	
-	printf("setting up pwm timers\n");
+	dprintf("setting up pwm timers\n");
 	setup_pwm();
 	
-	printf("timers have been setup\n");	
+	dprintf("timers have been setup\n");	
 
-	printf("loading saved frequencies\n");
+	dprintf("loading saved frequencies\n");
 	load_saved_frequency();
-	printf("Enabling interrupts\n");
+	dprintf("Enabling interrupts\n");
   	sei();
-  	printf("Enabled interrupts successfully\n");
+  	dprintf("Enabled interrupts successfully\n");
 
   	while(1)
   	{
   		_delay_ms(1000);
 	        for(uint8_t x = 0; x < sizeof(freq_table)/sizeof(struct frequencies) - 1; x++)
 	        {
-	        	printf("Changing frequency to tone x:%u mult: %u\n", x, freq_table[x].mult); 
+	        	dprintf("Changing frequency to tone x:%u mult: %u\n", x, freq_table[x].mult); 
                 	change_frequency(x, false);
 	                _delay_ms(10000);
 		}
