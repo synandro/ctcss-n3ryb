@@ -134,11 +134,11 @@ enum {
 
 struct frequencies 
 {
-	/* const char *tone; */
+	const char *tone;
 	const uint16_t mult;
 	const uint16_t start;
 	const uint16_t end;
-	const uint8_t channel;
+	const uint16_t channel;
 };
 
 
@@ -221,61 +221,61 @@ INDEX=114 R2=51000 R1=680000 vout = 0.558139534883721 index= 114
 */
 
 static const struct frequencies freq_table[] = {
-	{ /*.tone = "100",*/	.mult = MULT_100, 	.start = 950,	.end = 1024,	.channel = 1	},
-	{ /*.tone = "103.5",*/	.mult = MULT_103_5, 	.start = 860,	.end = 920,	.channel = 2	},
-	{ /*.tone = "118.5",*/	.mult = MULT_118_8, 	.start = 751,	.end = 860,	.channel = 3	},
-	{ /*.tone = "123",  */	.mult = MULT_123, 	.start = 651,	.end = 750,	.channel = 4	},
-	{ /*.tone = "127.3",*/	.mult = MULT_127_3, 	.start = 550,	.end = 650,	.channel = 5 	},
-	{ /*.tone = "131.8",*/	.mult = MULT_131_8, 	.start = 450,	.end = 550,	.channel = 6 	},
-	{ /*.tone = "141.3",*/	.mult = MULT_141_3, 	.start = 330,	.end = 450,	.channel = 7	},
-	{ /*.tone = "146.2",*/	.mult = MULT_146_2, 	.start = 300,	.end = 329,	.channel = 8	},
-	{ /*.tone = "167.9",*/	.mult = MULT_167_9, 	.start = 200,	.end = 299,	.channel = 9 	},
-	{ /*.tone = "179.9",*/	.mult = MULT_179_9, 	.start = 130,	.end = 200,	.channel = 10	},
-	{ /*.tone = "0", */		.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
+	{ .tone = "100",	.mult = MULT_100, 	.start = 950,	.end = 1024,	.channel = 1	},
+	{ .tone = "103.5",	.mult = MULT_103_5, 	.start = 860,	.end = 920,	.channel = 2	},
+	{ .tone = "118.5",	.mult = MULT_118_8, 	.start = 751,	.end = 860,	.channel = 3	},
+	{ .tone = "123",  	.mult = MULT_123, 	.start = 651,	.end = 750,	.channel = 4	},
+	{ .tone = "127.3",	.mult = MULT_127_3, 	.start = 550,	.end = 650,	.channel = 5 	},
+	{ .tone = "131.8",	.mult = MULT_131_8, 	.start = 450,	.end = 550,	.channel = 6 	},
+	{ .tone = "141.3",	.mult = MULT_141_3, 	.start = 330,	.end = 450,	.channel = 7	},
+	{ .tone = "146.2",	.mult = MULT_146_2, 	.start = 300,	.end = 329,	.channel = 8	},
+	{ .tone = "167.9",	.mult = MULT_167_9, 	.start = 200,	.end = 299,	.channel = 9 	},
+	{ .tone = "179.9",	.mult = MULT_179_9, 	.start = 130,	.end = 200,	.channel = 10	},
+	{ .tone = "0", 		.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
 };
 
 
 #if 0
 static const struct frequencies freq_table_two[] = {
-	{ /* .tone = "67", */	.mult = MULT_67, 	.start = 950,	.end = 1024,	.channel = 1	},
-	{ /*.tone = "69.3",*/	.mult = MULT_69_3, 	.start = 860,	.end = 920,	.channel = 2	},
-	{ /*.tone = "71.9",*/	.mult = MULT_71_9, 	.start = 751,	.end = 860,	.channel = 3	},
-	{ /*.tone = "74.4",*/	.mult = MULT_74_4, 	.start = 651,	.end = 750,	.channel = 4	},
-	{ /*.tone = "77",*/	.mult = MULT_77, 	.start = 550,	.end = 650,	.channel = 5 	},
-	{ /*.tone = "79.7",*/	.mult = MULT_79_7, 	.start = 450,	.end = 550,	.channel = 6 	},
-	{ /*.tone = "82.5",*/	.mult = MULT_82_5, 	.start = 330,	.end = 450,	.channel = 7	},
-	{ /*.tone = "85.4",*/	.mult = MULT_85_4, 	.start = 300,	.end = 329,	.channel = 8	},
-	{ /*.tone = "88.5",*/	.mult = MULT_88_5, 	.start = 200,	.end = 299,	.channel = 9 	},
-	{ /*.tone = "91.5",*/	.mult = MULT_91_5, 	.start = 130,	.end = 200,	.channel = 10	},
-	{ /* .tone = "0", */	.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
+	{ .tone = "67", 	.mult = MULT_67, 	.start = 950,	.end = 1024,	.channel = 1	},
+	{ .tone = "69.3",	.mult = MULT_69_3, 	.start = 860,	.end = 920,	.channel = 2	},
+	{ .tone = "71.9",	.mult = MULT_71_9, 	.start = 751,	.end = 860,	.channel = 3	},
+	{ .tone = "74.4",	.mult = MULT_74_4, 	.start = 651,	.end = 750,	.channel = 4	},
+	{ .tone = "77",		.mult = MULT_77, 	.start = 550,	.end = 650,	.channel = 5 	},
+	{ .tone = "79.7",	.mult = MULT_79_7, 	.start = 450,	.end = 550,	.channel = 6 	},
+	{ .tone = "82.5",	.mult = MULT_82_5, 	.start = 330,	.end = 450,	.channel = 7	},
+	{ .tone = "85.4",	.mult = MULT_85_4, 	.start = 300,	.end = 329,	.channel = 8	},
+	{ .tone = "88.5",	.mult = MULT_88_5, 	.start = 200,	.end = 299,	.channel = 9 	},
+	{ .tone = "91.5",	.mult = MULT_91_5, 	.start = 130,	.end = 200,	.channel = 10	},
+	{ .tone = "0",	.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
 };
 
 static const struct frequencies freq_table_three[] = {
-	{ /* .tone = "94.8", */	.mult = MULT_94_8, 	.start = 950,	.end = 1024,	.channel = 1	},
-	{ /*.tone = "97.4",*/	.mult = MULT_97_4, 	.start = 860,	.end = 920,	.channel = 2	},
-	{ /*.tone = "100",*/	.mult = MULT_100, 	.start = 751,	.end = 860,	.channel = 3	},
-	{ /*.tone = "103.5",*/	.mult = MULT_103_5, 	.start = 651,	.end = 750,	.channel = 4	},
-	{ /*.tone = "107.2",*/	.mult = MULT_107_2, 	.start = 550,	.end = 650,	.channel = 5 	},
-	{ /*.tone = "110.9",*/	.mult = MULT_110_9, 	.start = 450,	.end = 550,	.channel = 6 	},
-	{ /*.tone = "114.8",*/	.mult = MULT_114_8, 	.start = 330,	.end = 450,	.channel = 7	},
-	{ /*.tone = "118.8",*/	.mult = MULT_118_8, 	.start = 300,	.end = 329,	.channel = 8	},
-	{ /*.tone = "123",*/	.mult = MULT_123, 	.start = 200,	.end = 299,	.channel = 9 	},
-	{ /*.tone = "127.3",*/	.mult = MULT_127_3, 	.start = 130,	.end = 200,	.channel = 10	},
-	{ /* .tone = "0", */	.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
+	{ .tone = "94.8", 	.mult = MULT_94_8, 	.start = 950,	.end = 1024,	.channel = 1	},
+	{ .tone = "97.4",	.mult = MULT_97_4, 	.start = 860,	.end = 920,	.channel = 2	},
+	{ .tone = "100",	.mult = MULT_100, 	.start = 751,	.end = 860,	.channel = 3	},
+	{ .tone = "103.5",	.mult = MULT_103_5, 	.start = 651,	.end = 750,	.channel = 4	},
+	{ .tone = "107.2",	.mult = MULT_107_2, 	.start = 550,	.end = 650,	.channel = 5 	},
+	{ .tone = "110.9",	.mult = MULT_110_9, 	.start = 450,	.end = 550,	.channel = 6 	},
+	{ .tone = "114.8",	.mult = MULT_114_8, 	.start = 330,	.end = 450,	.channel = 7	},
+	{ .tone = "118.8",	.mult = MULT_118_8, 	.start = 300,	.end = 329,	.channel = 8	},
+	{ .tone = "123",	.mult = MULT_123, 	.start = 200,	.end = 299,	.channel = 9 	},
+	{ .tone = "127.3",	.mult = MULT_127_3, 	.start = 130,	.end = 200,	.channel = 10	},
+	{ .tone = "0", 	.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
 };
 
 static const struct frequencies freq_table_four[] = {
-	{ /*.tone = "131.8", */	.mult = MULT_131_8, 	.start = 950,	.end = 1024,	.channel = 1	},
-	{ /*.tone = "136.5",*/	.mult = MULT_136_5, 	.start = 860,	.end = 920,	.channel = 2	},
-	{ /*.tone = "141.3",*/	.mult = MULT_141_3, 	.start = 751,	.end = 860,	.channel = 3	},
-	{ /*.tone = "146.2",*/	.mult = MULT_146_2, 	.start = 651,	.end = 750,	.channel = 4	},
-	{ /*.tone = "151.4",*/	.mult = MULT_151_4, 	.start = 550,	.end = 650,	.channel = 5 	},
-	{ /*.tone = "156.7",*/	.mult = MULT_156_7, 	.start = 450,	.end = 550,	.channel = 6 	},
-	{ /*.tone = "162.2",*/	.mult = MULT_162_2, 	.start = 330,	.end = 450,	.channel = 7	},
-	{ /*.tone = "167.9",*/	.mult = MULT_167_9, 	.start = 300,	.end = 329,	.channel = 8	},
-	{ /*.tone = "173.8",*/	.mult = MULT_173_8, 	.start = 200,	.end = 299,	.channel = 9 	},
-	{ /*.tone = "179.9",*/	.mult = MULT_179_9, 	.start = 130,	.end = 200,	.channel = 10	},
-	{ /* .tone = "0", */	.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
+	{ .tone = "131.8", 	.mult = MULT_131_8, 	.start = 950,	.end = 1024,	.channel = 1	},
+	{ .tone = "136.5",	.mult = MULT_136_5, 	.start = 860,	.end = 920,	.channel = 2	},
+	{ .tone = "141.3",	.mult = MULT_141_3, 	.start = 751,	.end = 860,	.channel = 3	},
+	{ .tone = "146.2",	.mult = MULT_146_2, 	.start = 651,	.end = 750,	.channel = 4	},
+	{ .tone = "151.4",	.mult = MULT_151_4, 	.start = 550,	.end = 650,	.channel = 5 	},
+	{ .tone = "156.7",	.mult = MULT_156_7, 	.start = 450,	.end = 550,	.channel = 6 	},
+	{ .tone = "162.2",	.mult = MULT_162_2, 	.start = 330,	.end = 450,	.channel = 7	},
+	{ .tone = "167.9",	.mult = MULT_167_9, 	.start = 300,	.end = 329,	.channel = 8	},
+	{ .tone = "173.8",	.mult = MULT_173_8, 	.start = 200,	.end = 299,	.channel = 9 	},
+	{ .tone = "179.9",	.mult = MULT_179_9, 	.start = 130,	.end = 200,	.channel = 10	},
+	{ .tone = "0", 	.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
 };
 
 #endif
@@ -486,8 +486,79 @@ static void setup_pwm(void)
 
 
 
+
+void SPI_write16 (uint16_t data)          //      send a 16bit word and use fsync
+{
+        unsigned char MSdata = ((data>>8) & 0x00FF);    //filter out MS
+        unsigned char LSdata = (data & 0x00FF);                 //filter out LS
+
+        dprintf("Writing SPI_write16: %x\r\n", data);
+        SPDR = MSdata;                                                  //      send First 8 MS of data
+        while (!(SPSR & (1<<SPIF)));                    //      while busy
+
+        SPDR = LSdata;                                                  //      send Last 8 LS of data
+        while (!(SPSR & (1<<SPIF)));                    //      while busy
+}
+
+// AD9833 Control Register helpers
+#define CR_B28_COMBINED      0x2000
+#define CR_FSELECT_0         0x0000
+#define CR_PSELECT_0         0x0000
+#define CR_RESET             0x0100
+#define CR_SLEEP1            0x0080
+#define CR_SLEEP12           0x0040
+#define CR_OPBITEN           0x0020
+#define CR_DIV2              0x0008
+#define CR_MODE_D1_TRIANGLE  0x0002
+#define CR_MODE_D1_SINE      0x0000
+
+// Mnemonics for wave forms
+#define SINE                 (CR_B28_COMBINED | CR_MODE_D1_SINE)
+#define SQUARE               (CR_B28_COMBINED | CR_OPBITEN)
+#define FAST_SQUARE          (SQUARE | CR_DIV2)
+#define TRIANGLE             (CR_B28_COMBINED | CR_MODE_D1_TRIANGLE)
+
+#define FREQ0                0x4000
+#define PHASE0               0xC000
+#define REF_FREQ             25000000.0
+#define SPI_CLOCK_SPEED      12000000
+
+
+
+
+void spi_init(void)
+{
+	// PB1 = SCLK, PB2 = MOSI, PB3 = MISO, PE6 = slave select
+	DDRB |= _BV(PB1) | _BV(PB2);
+	DDRE |= _BV(PE6); // slave select 
+	PORTE |= (1 << PE6); 
+	PORTB |= (1 << PB1);
+	SPCR  = _BV(SPE)| _BV(MSTR)| _BV(SPR0) | _BV(CPOL);
+
+}
+
+#if 1
+void setWave(int waveform, long frequency) {
+	long freq_data = frequency * pow(2, 28) / REF_FREQ;
+	int freq_MSB = (int)(freq_data >> 14) | FREQ0;
+	int freq_LSB = (int)(freq_data & 0x3FFF) | FREQ0;
+
+	PORTE &= ~_BV(PE6);                                             //      Fsync Low --> begin frame
+	_delay_ms(10);
+	SPI_write16(CR_B28_COMBINED | CR_FSELECT_0 | CR_PSELECT_0 | CR_RESET);
+	SPI_write16(freq_LSB);
+	SPI_write16(freq_MSB);
+	SPI_write16(PHASE0);
+	SPI_write16(waveform);
+	_delay_ms(10);
+	PORTE |= _BV(PE6);                                              //      Fsync High --> End of frame
+}
+#endif
+
+
 static void setup() 
 {
+	long startf = 18000000;
 	cli();
 #ifdef DEBUG
 	uart_init();
@@ -509,20 +580,34 @@ static void setup()
 	
 	dprintf("timers have been setup\r\n");	
 
+
+	dprintf("doing spi_init()\r\n");
+	spi_init();
+	dprintf("survived spi_init()\r\n");
+//	AD9833_init();
+//	dprintf("ad9833 init is okay\r\n");
+
 	dprintf("loading saved frequencies\r\n");
 	load_saved_frequency();
 	dprintf("Enabling interrupts\r\n");
   	sei();
   	dprintf("Enabled interrupts successfully\r\n");
-
+  	
+  	dprintf("Attempting to output a waveform\r\n");
+  	setWave(SINE, startf);
   	while(1)
   	{
   		_delay_ms(1000);
 	        for(uint8_t x = 0; x < sizeof(freq_table)/sizeof(struct frequencies) - 1; x++)
 	        {
-	        	dprintf("Changing frequency to tone x:%u mult: %u\r\n", x, freq_table[x].mult); 
+	        	dprintf("Changing frequency to tone %s x:%u mult: %u\r\n", freq_table[x].tone, x, freq_table[x].mult); 
+//	        	startf += 1000000;
+//	        	setWave(SINE, startf);
                 	change_frequency(x, false);
 	                _delay_ms(10000);
+//	                startf += 1000000;
+	                dprintf("Setting DDS to startf: %lu\n", startf);
+	                setWave(SINE, startf);
 		}
   	}
 
@@ -645,6 +730,9 @@ ISR(TIMER0_COMPA_vect)
 {
 	OCR4B = sine_wave[((counter += cur_mult) >> 8)];
 }
+
+
+
 
 int main(void)
 {
