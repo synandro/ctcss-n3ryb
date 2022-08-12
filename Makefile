@@ -21,7 +21,7 @@ EXTRA_FLAGS += -DRESET_ACTIVE
 endif
 # EXTRA_FLAGS += -DF_CPU=8000000L -DCLOCK_SOURCE=6 
 
-COMPILE    = avr-gcc -save-temps=obj -Wall  -mmcu=$(DEVICE) -Os -finline-functions -fverbose-asm  
+COMPILE    = avr-gcc -save-temps=obj -Wall  -mmcu=$(DEVICE) -Os -fno-unroll-loops  -finline-functions   -fverbose-asm -std=gnu11
 OBJS       = ctcss-n3ryb.o
 OUTNAME    := $(notdir $(patsubst %/,%,$(dir $(realpath $(firstword $(MAKEFILE_LIST))))))
 
@@ -61,6 +61,7 @@ else
 endif
 	echo "lock_byte = 0x00ff" >> fuse.txt
 
+ctcss-n3ryb.c: tools.h
 
 %.bin: %.elf
 	rm -f $@ $(basename $@).eep
@@ -77,7 +78,7 @@ clean:
 	rm -f fuse.txt
 
 %.elf: %.o
-	$(COMPILE) -Wall -Wextra  -Wl,--gc-sections -Wl,-Map,$(basename $@).map -o $@ $^
+	$(COMPILE) -Wall -Wextra -std=gnu11 -Wl,--gc-sections -Wl,-Map,$(basename $@).map -o $@ $^
 	avr-size $@ -C --mcu=$(DEVICE)
 
 
