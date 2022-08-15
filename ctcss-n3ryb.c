@@ -23,7 +23,7 @@
 #endif
 
 #include "tools.h"
-
+#include "ad9833.h"
 
 buf_head_t uart_rx_buf;
 uint32_t vfo_a_freq;
@@ -533,13 +533,15 @@ static inline  __attribute__((always_inline)) void SPI_write(const uint8_t data)
 
 
 
-static __attribute__((noinline)) void SPI_write16 (const uint16_t data)          
+static inline void SPI_write16 (const uint16_t data)          
 //static void SPI_write16 (const uint16_t data)          
 {
 	SPI_write((data >> 8) & 0xFF);
 	SPI_write(data & 0xFF);
 }
 
+
+#if 0
 // AD9833 Control Register helpers
 #define CR_B28_COMBINED      0x2000
 #define CR_FSELECT_0         0x0000
@@ -560,10 +562,23 @@ static __attribute__((noinline)) void SPI_write16 (const uint16_t data)
 
 #define FREQ0                0x4000
 #define PHASE0               0xC000
-#define REF_FREQ             25000000
 #define SPI_CLOCK_SPEED      12000000
 
+#endif
+#define REF_FREQ             25000000
 
+
+static void inline ad9833_sselect_high(void)
+{
+        PORTF |= _BV(PF7);
+        _delay_ms(10);
+}
+
+static void inline ad9833_sselect_low(void)
+{
+        PORTF &= ~_BV(PF7);
+        _delay_ms(10);
+}
 
 
 void spi_init(void)
@@ -576,23 +591,42 @@ void spi_init(void)
 	SPCR  = _BV(SPE)| _BV(MSTR)| _BV(SPR0) | _BV(CPOL);
 }
 
+void ad9833_init(void)
+{
+//	PORTF |= _BV(PF7);
+	DDRF |= _BV(PF7);
+	ad9833_sselect_low();
+	SPI_write16(AD9833_RESET);
+	ad9833_sselect_high();
+}
 
-static void __attribute__((noinline)) setWave(int waveform, uint32_t frequency) 
+
+
+#if 1
+
+static void __attribute__((noinline)) setWave(uint32_t frequency) 
 {
 	uint32_t freq_data = ((uint64_t)frequency << 28) / REF_FREQ;
-	uint16_t freq_MSB = (freq_data >> 14) | FREQ0;
-	uint16_t freq_LSB = (freq_data & 0x3FFF) | FREQ0;
+	uint16_t freq_MSB = (freq_data >> 14);  //| FREQ0;
+	uint16_t freq_LSB = (freq_data & 0x3FFF); //| FREQ0;
 	dprintf("Setting with freq_data: %lu\r\n", freq_data);
-	PORTE &= ~_BV(PE6);                                             //      Fsync Low --> begin frame
-	_delay_ms(10);
-	SPI_write16(CR_B28_COMBINED | CR_FSELECT_0 | CR_PSELECT_0 | CR_RESET);
-	SPI_write16(freq_LSB);
-	SPI_write16(freq_MSB);
-	SPI_write16(PHASE0);
-	SPI_write16(waveform);
-	_delay_ms(10);
-	PORTE |= _BV(PE6);                                              //      Fsync High --> End of frame
+
+	ad9833_sselect_low();
+
+	SPI_write16(AD9833_B28);
+	SPI_write16(freq_LSB | AD9833_D14); /* D14 is freq0 */
+	SPI_write16(freq_MSB | AD9833_D14);
+	SPI_write16(AD9833_B28);
+	freq_data = ((uint64_t)(frequency + 1200) << 28) / REF_FREQ;
+	freq_MSB = (freq_data >> 14);
+	freq_LSB = (freq_data & 0x3FFF);
+	SPI_write16(freq_LSB | AD9833_D15); /* D15 is freq1 */
+	SPI_write16(freq_MSB | AD9833_D15);
+
+//	ad9833_sselect_high();
 }
+#endif
+
 
 typedef void CMDCB(char **parv, uint8_t parc);
 
@@ -604,6 +638,21 @@ struct command_struct
 	bool iscat; /* a cat command, only match the first two characters */
 };
 
+static void cmd_t(char **argv, uint8_t argc)
+{
+	for(uint16_t i = 0;i < 128;i++)
+	{
+		SPI_write16(AD9833_FSELECT1);
+		_delay_ms(5);
+		SPI_write16(AD9833_FSELECT0);
+		_delay_ms(5);
+	}
+}
+
+static void cmd_r(char **argv, uint8_t argc)
+{
+	SPI_write16(AD9833_FSELECT0);
+}
 
 static void cmd_vfo_a(char **argv, uint8_t argc)
 {
@@ -616,7 +665,7 @@ static void cmd_vfo_a(char **argv, uint8_t argc)
 		
 
 	vfo_a_freq = tfreq = atoul(&argv[0][2]);
-	setWave(SINE, tfreq);
+	setWave(tfreq);
 	dprintf("Setting wave to tfreq: %lu\r\n", vfo_a_freq);
 	dprintf("FA;%lu;\r\n", tfreq);
 
@@ -811,6 +860,8 @@ struct command_struct commands[] = {
 	{ .cmd = "FA", .handler = cmd_vfo_a, .iscat = 1 },
 //	{ .cmd = "FB", .handler = cmd_vfo_b },
 //	{ .cmd = "HI", .handler = cmd_hi },
+	{ .cmd = "T", .handler = cmd_t },
+	{ .cmd = "R", .handler = cmd_r },
 	{ .cmd = "ADC", .handler = cmd_adc, .iscat = 0 },
 	{ .cmd = NULL, .handler = NULL }, 
 
@@ -946,8 +997,9 @@ static void setup()
 	dprintf("Enabling interrupts\r\n");
   	sei();
   	dprintf("Enabled interrupts successfully\r\n");
-  	dprintf("Setting DDS frequency to: %lu cycles\r\n", vfo_a_freq);
-  	setWave(SINE, vfo_a_freq);
+//  	dprintf("Setting DDS frequency to: %lu cycles\r\n", vfo_a_freq);
+ // 	setWave(SINE, vfo_a_freq);
+ 	ad9833_init();
 
   	while(1)
   	{

@@ -45,19 +45,19 @@ struct _rb_dlink_list
 
 typedef struct _buf_line
 {
+	uint16_t len;		/* How much data we've got */
 	rb_dlink_node node;
-	char buf[BUF_DATA_SIZE + 2];
 	bool terminated;     /* Whether we've terminated the buffer */
 	bool used; 
 	bool raw;	    /* Whether this linebuf may hold 8-bit data */
-	uint16_t len;		/* How much data we've got */
+	char buf[BUF_DATA_SIZE + 2];
 } buf_line_t;
 
 typedef struct _buf_head
 {
 	rb_dlink_list list;     /* the actual dlink list */
-	int len;		/* length of all the data */
-	int writeofs;	   /* offset in the first line for the write */
+	int16_t len;		/* length of all the data */
+	int16_t writeofs;	   /* offset in the first line for the write */
 } buf_head_t;
 
 
@@ -146,9 +146,9 @@ rb_linebuf_new_line(buf_head_t * bufhead)
 }
 
 static inline int
-rb_linebuf_skip_crlf(char *ch, int len)
+rb_linebuf_skip_crlf(char *ch, int16_t len)
 {
-	int orig_len = len;
+	int16_t orig_len = len;
 
 	/* First, skip until the first non-CRLF */
 	for(; len; len--, ch++)
@@ -179,12 +179,12 @@ rb_linebuf_newbuf(buf_head_t * bufhead)
 }
 
 static int
-rb_linebuf_copy_raw(buf_head_t * bufhead, buf_line_t * bufline, char *data, int len)
+rb_linebuf_copy_raw(buf_head_t * bufhead, buf_line_t * bufline, char *data, int16_t len)
 {
-	int cpylen = 0;	 /* how many bytes we've copied */
+	int16_t cpylen = 0;	 /* how many bytes we've copied */
 	char *ch = data;	/* Pointer to where we are in the read data */
 	char *bufch = bufline->buf + bufline->len;
-	int clen = 0;	   /* how many bytes we've processed,
+	int16_t clen = 0;	   /* how many bytes we've processed,
 				   and don't ever want to see again.. */
 
 	/* If its full or terminated, ignore it */
@@ -232,12 +232,12 @@ rb_linebuf_copy_raw(buf_head_t * bufhead, buf_line_t * bufline, char *data, int 
 
 
 static int
-rb_linebuf_copy_line(buf_head_t * bufhead, buf_line_t * bufline, char *data, int len)
+rb_linebuf_copy_line(buf_head_t * bufhead, buf_line_t * bufline, char *data, int16_t len)
 {
-	int cpylen = 0;	 /* how many bytes we've copied */
+	int16_t cpylen = 0;	 /* how many bytes we've copied */
 	char *ch = data;	/* Pointer to where we are in the read data */
 	char *bufch = bufline->buf + bufline->len;
-	int clen = 0;	   /* how many bytes we've processed,
+	int16_t clen = 0;	   /* how many bytes we've processed,
 				   and don't ever want to see again.. */
 
 	/* If its full or terminated, ignore it */
@@ -301,8 +301,8 @@ static int
 rb_linebuf_parse(buf_head_t * bufhead, char *data, int len, bool raw)
 {
 	buf_line_t *bufline;
-	int cpylen;
-	int linecnt = 0;
+	int16_t cpylen;
+	int16_t linecnt = 0;
 	/* First, if we have a partial buffer, try to squeze data into it */
 	if(bufhead->list.tail != NULL)
 	{
@@ -365,10 +365,10 @@ rb_linebuf_done_line(buf_head_t * bufhead, buf_line_t * bufline, rb_dlink_node *
 
 
 static int
-rb_linebuf_get(buf_head_t * bufhead, char *buf, int buflen, bool partial, bool raw)
+rb_linebuf_get(buf_head_t * bufhead, char *buf, int16_t buflen, bool partial, bool raw)
 {
 	buf_line_t *bufline;
-	int cpylen;
+	int16_t cpylen;
 	char *start, *ch;
 
 	/* make sure we have a line */
@@ -429,10 +429,10 @@ rb_linebuf_get(buf_head_t * bufhead, char *buf, int buflen, bool partial, bool r
 // static char *para[MAXPARA + 2];
 
 int
-rb_string_to_array(char *string, char **parv, int maxpara)
+rb_string_to_array(char *string, char **parv, int16_t maxpara)
 {
         char *p, *xbuf = string;
-        int x = 0;
+        int16_t x = 0;
 
         parv[x] = NULL;
 
@@ -479,5 +479,6 @@ rb_string_to_array(char *string, char **parv, int maxpara)
         parv[x] = NULL;
         return x;
 }
+
 
 
