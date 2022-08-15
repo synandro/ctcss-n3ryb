@@ -61,7 +61,8 @@ else
 endif
 	echo "lock_byte = 0x00ff" >> fuse.txt
 
-ctcss-n3ryb.c: tools.h
+ctcss-n3ryb.o: ctcss-n3ryb.c tools.h ad9833.h
+
 
 %.bin: %.elf
 	rm -f $@ $(basename $@).eep
