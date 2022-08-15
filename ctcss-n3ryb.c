@@ -355,7 +355,6 @@ static uint8_t atous(const char *num)
 }
 
 
-
 static inline  __attribute__((always_inline)) void led_off(void)
 {
 	PORTB &= ~(1 << PB0);
@@ -513,7 +512,8 @@ static void setup_pwm(void)
 	TCCR4B = _BV(CS40);
 	
 
-	TCCR0A = _BV(COM1B0) | _BV(WGM00) | _BV(WGM01);
+//	TCCR0A = _BV(COM1B0) | _BV(WGM00) | _BV(WGM01);
+	TCCR0A = _BV(COM0B0) | _BV(WGM00) | _BV(WGM01);
 	TCCR0B = _BV(WGM02) | _BV(CS01);
 	TIMSK0 = _BV(OCIE0A);		
 	OCR0A = 243;
@@ -524,20 +524,20 @@ static void setup_pwm(void)
 }
 
 
+static inline  __attribute__((always_inline)) void SPI_write(const uint8_t data)
+{
+	SPDR = data;
+	asm volatile( "nop" );
+	loop_until_bit_is_set(SPSR, SPIF);
+}
+
 
 
 static __attribute__((noinline)) void SPI_write16 (const uint16_t data)          
+//static void SPI_write16 (const uint16_t data)          
 {
-	uint8_t upper = (data >> 8) & 0xFF;
-	uint8_t lower = data & 0xFF; 
-
-//        dprintf("Writing spi_write16: %x\r\n", data);
-        SPDR = upper;
-	asm volatile( "nop" );	
-        while (!(SPSR & (1<<SPIF)));                    
-        SPDR = lower;                                                 
-	asm volatile( "nop" );
-        while (!(SPSR & (1<<SPIF)));                    
+	SPI_write((data >> 8) & 0xFF);
+	SPI_write(data & 0xFF);
 }
 
 // AD9833 Control Register helpers
@@ -780,7 +780,7 @@ static void cmd_adc(char **argv, uint8_t argc)
 //        while(1)
 		while(!bit_is_set(ADCSRA,ADSC));
 
-        	unsigned int adc_val = ADCW;
+        	uint16_t adc_val = ADCW;
         	
         	for(uint8_t i = 0; i < adc_samples; i++)
         	{
@@ -973,7 +973,8 @@ static uint16_t adc_avg(void)
 
 	for(uint8_t i = 0; i < adc_samples; i++)
 	{
-		adc_val += (ADCL|(ADCH<<8));
+		adc_val += ADCW;
+//		adc_val += (ADCL|(ADCH<<8));
 		_delay_ms(5);
 	}
 	return (adc_val / adc_samples);
