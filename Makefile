@@ -38,8 +38,12 @@ all-1: test-serial.hex
 #test-serial.hex: test-serial
 
 
+#install: $(OUTNAME).hex
+#	micronucleus $^
+
 install: $(OUTNAME).hex
-	micronucleus $^
+	avrdude -c arduino -p m32u4 -P /dev/ttyUSB1 -v -b 115200  -U flash:w:$^
+
 
 install-avr: $(OUTNAME).hex
 	avrdude -p t85 -c usbtiny -v -U flash:w:$^
