@@ -119,54 +119,6 @@ enum {
 
 static uint8_t EEMEM saved_frequency = HZ_123;
 
-
-/* these are the multipliers that were calculated, they need verified ***
-	MULT_67 = 536,
-	MULT_69_3 = 554,
-	MULT_71_9 = 575,
-	MULT_74_4 = 595,
-	MULT_77 = 616,
-	MULT_79_7 = 638,
-	MULT_82_5 = 660,
-	MULT_85_4 = 683,
-	MULT_88_5 = 708,
-	MULT_91_5 = 732,
-	MULT_94_8 = 758,
-	MULT_97_4 = 779,
-	MULT_100 = 800,
-	MULT_103_5 = 828,
-	MULT_107_2 = 858,
-	MULT_110_9 = 887,
-	MULT_114_8 = 918,
-	MULT_118_8 = 950,
-	MULT_123 = 984,
-	MULT_127_3 = 1018,
-	MULT_131_8 = 1054,
-	MULT_136_5 = 1092,
-	MULT_141_3 = 1130,
-	MULT_146_2 = 1170,
-	MULT_151_4 = 1211,
-	MULT_156_7 = 1254,
-	MULT_162_2 = 1298,
-	MULT_167_9 = 1343,
-	MULT_173_8 = 1390,
-	MULT_179_9 = 1439,
-	MULT_186_2 = 1490,
-	MULT_192_8 = 1542,
-	MULT_203_5 = 1628,
-	MULT_206_5 = 1652,
-	MULT_210_7 = 1686,
-	MULT_218_1 = 1745,
-	MULT_225_7 = 1806,
-	MULT_229_1 = 1833,
-	MULT_233_6 = 1869,
-	MULT_241_8 = 1934,
-	MULT_250_3 = 2002,
-	MULT_254_1 = 2033,
-*/
-
-
-
 struct frequencies 
 {
 	const char *tone;
@@ -176,72 +128,6 @@ struct frequencies
 	const uint16_t channel;
 };
 
-
-
-/*
-
-	HZ_67
-	HZ_69_3
-	HZ_71_9
-	HZ_74_4
-	HZ_77
-	HZ_79_7
-	HZ_82_5
-	HZ_85_4
-	HZ_88_5
-	HZ_91_5
-	HZ_94_8
-	HZ_97_4
-	HZ_100
-	HZ_103_5
-	HZ_107_2
-	HZ_110_9
-	HZ_114_8
-	HZ_118_8
-	HZ_123
-	HZ_127_3
-	HZ_131_8
-	HZ_136_5
-	HZ_141_3
-	HZ_146_2
-	HZ_151_4
-	HZ_156_7
-	HZ_162_2
-	HZ_167_9
-	HZ_173_8
-	HZ_179_9
-	HZ_186_2
-	HZ_192_8
-	HZ_203_5
-	HZ_206_5
-	HZ_210_7
-	HZ_218_1
-	HZ_225_7
-	HZ_229_1
-	HZ_233_6
-	HZ_241_8
-	HZ_250_3
-	HZ_254_1
-*/
-
-/*
-INDEX=994 R2=51000 R1=33000 vout = 4.85714285714286 index= 994
-INDEX=852 R2=51000 R1=47000 vout = 4.16326530612245 index= 852
-INDEX=819 R2=51000 R1=51000 vout = 4 index= 819
-INDEX=702 R2=51000 R1=68000 vout = 3.42857142857143 index= 702
-INDEX=553 R2=51000 R1=100000 vout = 2.70198675496689 index= 553
-INDEX=415 R2=51000 R1=150000 vout = 2.02985074626866 index= 415
-INDEX=332 R2=51000 R1=200000 vout = 1.62549800796813 index= 332
-INDEX=308 R2=51000 R1=220000 vout = 1.50553505535055 index= 308
-INDEX=238 R2=51000 R1=300000 vout = 1.16239316239316 index= 238
-INDEX=219 R2=51000 R1=330000 vout = 1.07086614173228 index= 219
-INDEX=189 R2=51000 R1=390000 vout = 0.925170068027211 index= 189
-INDEX=160 R2=51000 R1=470000 vout = 0.783109404990403 index= 160
-INDEX=114 R2=51000 R1=680000 vout = 0.558139534883721 index= 114
-
-
-*/
-#if 1
 /* So we are using a precomputed frequency table for the LSB and MSB half of the frequency
  * this all assumes that the clock on the ad9833 is running at 25MHz
  * 
@@ -294,11 +180,31 @@ struct memory_entry EEMEM band_3[11] = {
 };
 
 
+struct band_switch {
+	const uint16_t start;
+	const uint16_t end;
+
+};
+
+struct channel_switch {
+	const uint16_t start;
+	const uint16_t end;
+};
+
+const struct band_switch bands[8] = {
+	{ .start = 1024, .end = 900 },
+
+};
+
+const struct channel_switch channels[12] = {
+	{ .start = 1024, .end = 900 } ,
+
+};
 
 
-#endif
 
 
+#if 0
 static const struct frequencies freq_table[] = {
 	{ .tone = "100",	.mult = MULT_100_0, 	.start = 950,	.end = 1024,	.channel = 1	},
 	{ .tone = "103.5",	.mult = MULT_103_5, 	.start = 860,	.end = 920,	.channel = 2	},
@@ -312,7 +218,7 @@ static const struct frequencies freq_table[] = {
 	{ .tone = "179.9",	.mult = MULT_179_9, 	.start = 130,	.end = 200,	.channel = 10	},
 	{ .tone = "0", 		.mult = MULT_NONE, 	.start = 80,	.end = 129,	.channel = 11	},
 };
-
+#endif
 
 #if 0
 static const struct frequencies freq_table_two[] = {
@@ -479,13 +385,16 @@ static void do_blink(uint8_t count)
 static void change_frequency(const uint8_t freq, bool save)
 {
 	cur_freq = freq;
+#if 0
 	cur_mult = freq_table[freq].mult;
+
 	if(cur_mult == MULT_NONE)
 	{
 		fast_blink(4);
 	} else {
 		do_blink(freq_table[freq].channel);
 	}
+#endif
 	if(save == false)
 		return;
 
@@ -601,11 +510,11 @@ static void setup_pwm(void)
 {
 	TIMSK0 = 0;
 
-	OCR4B = 120;
+	OCR4D = 120;
 
-	TCCR4A = _BV(WGM40) | _BV(WGM41) | _BV(COM4B0);
+//	TCCR4A = _BV(WGM40) | _BV(WGM41) | _BV(COM4B0);
 	TCCR4B = _BV(CS40);
-	
+	TCCR4C = _BV(WGM40) | _BV(WGM41) | _BV(COM4D0);	
 
 //	TCCR0A = _BV(COM1B0) | _BV(WGM00) | _BV(WGM01);
 	TCCR0A = _BV(COM0B0) | _BV(WGM00) | _BV(WGM01);
@@ -615,7 +524,7 @@ static void setup_pwm(void)
 
 	//DDRB |= (1 << PB7); 
 	//DDRB |= (1 << PB5); 
-	DDRB |= (1 << PB6); 
+	DDRD |= (1 << PD7); 
 }
 
 
@@ -638,7 +547,7 @@ static __attribute__((noinline)) void SPI_write16 (const uint16_t data)
 static void inline ad9833_sselect_high(void)
 {
         PORTF |= _BV(PF7);
-        _delay_ms(10);
+        _delay_us(40);
 }
 
 static void inline ad9833_sselect_low(void)
@@ -685,7 +594,7 @@ static void ad9833_on(void)
 static void ad9833_init(void)
 {
 	DDRF |= _BV(PF4);
-
+	dds_amp_on();
 	spi_init();
 
 	ad9833_on();
@@ -737,8 +646,7 @@ static void __attribute__((noinline)) setWave(uint32_t frequency)
 	freq_LSB = (freq_data & 0x3FFF);
 	SPI_write16(freq_LSB | AD9833_D15); /* D15 is freq1 */
 	SPI_write16(freq_MSB | AD9833_D15);
-
-//	ad9833_sselect_high();
+	ad9833_sselect_high();
 }
 #endif
 
@@ -802,193 +710,6 @@ static void cmd_vfo_b(const char *buf, size_t len)
 }
 
 #endif
-
-#if 0
-#define AD_MUX_ADC0 0x0 // F0
-#define AD_MUX_ADC1 (_BV(MUX0)) // F1
-#define AD_MUX_ADC4 (_BV(MUX2))  // F4
-#define AD_MUX_ADC5 (_BV(MUX0) | _BV(MUX2))  // F5
-#define AD_MUX_ADC6 (_BV(MUX1) | _BV(MUX2)) // 20 // F6
-#define AD_MUX_ADC7 (_BV(MUX0) | _BV(MUX1) | _BV(MUX2)) // 21 // F7
-
-#define AD_DID_ADC0_PORT DIDR0
-#define AD_DID_ADC1_PORT DIDR0
-#define AD_DID_ADC4_PORT DIDR0
-#define AD_DID_ADC5_PORT DIDR0
-#define AD_DID_ADC6_PORT DIDR0
-#define AD_DID_ADC7_PORT DIDR0
-
-
-#define AD_MUX_ADC8 (_BV(MUX5)) // 22 // D4
-#define AD_MUX_ADC9 (_BV(MUX5) | _BV(MUX0)) //100 // D6
-#define AD_MUX_ADC10 (_BV(MUX5) | _BV(MUX1)) // 101 // D7
-#define AD_MUX_ADC11 (_BV(MUX5) | _BV(MUX2) | _BV(MUX1)) // 102 // B4
-#define AD_MUX_ADC12 (_BV(MUX5) | _BV(MUX2)) // 110 // B5
-#define AD_MUX_ADC13 (_BV(MUX5) | _BV(MUX2) | _BV(MUX0)) // 111 // B6
-#define AD_MUX_TEMP (_BV(MUX1) | _BV(MUX2) | _BV(MUX3))
-
-
-#define AD_DID_ADC8_PORT DIDR1
-#define AD_DID_ADC9_PORT DIDR1
-#define AD_DID_ADC10_PORT DIDR1
-#define AD_DID_ADC11_PORT DIDR1
-#define AD_DID_ADC12_PORT DIDR1
-#define AD_DID_ADC13_PORT DIDR1
-
-
-
-
-#define AD_SRB_ADC0 0
-#define AD_SRB_ADC1 0
-#define AD_SRB_ADC2 0
-#define AD_SRB_ADC3 0
-#define AD_SRB_ADC4 0
-#define AD_SRB_ADC5 0
-#define AD_SRB_ADC6 0 
-#define AD_SRB_ADC7 0
-#define AD_SRB_ADC8 (_BV(MUX5))
-#define AD_SRB_ADC9 (_BV(MUX5))
-#define AD_SRB_ADC10 (_BV(MUX5))
-#define AD_SRB_ADC11 (_BV(MUX5))
-#define AD_SRB_ADC12 (_BV(MUX5))
-#define AD_SRB_ADC13 (_BV(MUX5));
-#define AD_SRB_TEMP (_BV(MUX5));
-
-
-
-
-
-static void cmd_adc(char **argv, uint8_t argc)
-{
-	uint8_t admux_val;
-	uint8_t adc = 120; // the temp sensor
-	uint8_t adc_samples = 16;
-	uint16_t adc_result = 0;	
-	if(argc > 1)
-		adc = atous(argv[1]);
-	
-	switch(adc)
-	{
-		case 0:
-			ADMUX = AD_MUX_ADC0;
-			ADCSRB = AD_SRB_ADC0;
-			AD_DID_ADC0_PORT |= _BV(ADC0D);
-			break;
-		case 1:
-			ADMUX = AD_MUX_ADC1;
-			ADCSRB = AD_SRB_ADC1;
-			AD_DID_ADC1_PORT |= _BV(ADC1D);
-			break;
-		case 4:
-			ADMUX = AD_MUX_ADC4;
-			ADCSRB = AD_SRB_ADC4;
-			AD_DID_ADC4_PORT |= _BV(ADC4D);
-			break;
-		case 5:
-			ADMUX = AD_MUX_ADC5;
-			ADCSRB = AD_SRB_ADC5;
-			AD_DID_ADC5_PORT |= _BV(ADC5D);
-			
-			break;
-		case 6:
-			ADMUX = AD_MUX_ADC6;
-			ADCSRB = AD_SRB_ADC6;
-			AD_DID_ADC6_PORT |= _BV(ADC6D);
-
-			break;
-		case 7:
-			ADMUX = AD_MUX_ADC7;
-			ADCSRB = AD_SRB_ADC7;
-			AD_DID_ADC7_PORT |= _BV(ADC7D);
-
-			break;
-		case 8:
-			ADMUX = AD_MUX_ADC8;
-			ADCSRB = AD_SRB_ADC8;
-			AD_DID_ADC8_PORT |= _BV(ADC8D);
-			break;
-			
-		case 9:
-			ADMUX = AD_MUX_ADC9;
-			ADCSRB = AD_SRB_ADC9;
-			AD_DID_ADC9_PORT |= _BV(ADC9D);
-
-			break;
-		case 10:
-			ADMUX = AD_MUX_ADC10;
-			ADCSRB = AD_SRB_ADC10;
-			AD_DID_ADC10_PORT |= _BV(ADC10D);
-			break;
-		case 11:
-			ADMUX = AD_MUX_ADC11;
-			ADCSRB = AD_SRB_ADC11;
-			AD_DID_ADC11_PORT |= _BV(ADC11D);
-			
-			break;
-		case 12:
-			ADMUX = AD_MUX_ADC12;
-			ADCSRB = AD_SRB_ADC12;
-			AD_DID_ADC12_PORT |= _BV(ADC12D);
-
-			break;
-		case 13:
-			ADMUX = AD_MUX_ADC13;
-			ADCSRB = AD_SRB_ADC13;
-			AD_DID_ADC13_PORT |= _BV(ADC13D);
-			break;
-		case 120:
-			ADMUX = AD_MUX_TEMP;
-			ADCSRB = AD_SRB_TEMP;
-			break;
-		default:
-			ADMUX = AD_MUX_TEMP;
-			ADCSRB = AD_SRB_TEMP;
-			break;
-	
-	}
-
-
-	ADCSRA = _BV(ADEN) | _BV(ADATE);      //Enable ADC module
-        ADCSRB= 0x00;                   //Configuring free running mode
-        ADCSRA |= (1<<ADSC)|(1<<ADATE);   //Start ADC conversion and enabling Auto trigger
-
-
-	ADCSRA |= _BV(ADEN); // | _BV(ADATE);	/* turn on the ADC and auto update */ 
-
-//	ADMUX |= _BV(REFS1); 
-	ADCSRA |= _BV(ADSC);			/* lets start a conversion */
-	_delay_ms(10);
-	
-	for(uint8_t i = 0; i < 8; i++)
-	{
-		while(!bit_is_set(ADCSRA,ADSC));
-
-        	uint16_t adc_val = ADCW;
-        	
-        	for(uint8_t i = 0; i < adc_samples; i++)
-        	{
-        		while(!bit_is_set(ADCSRA,ADSC));
-        		adc_result += ADCW;
-        	}
-        	
-        	dprintf("ADC: adc_val: %u average: %u\r\n", adc_val, adc_result / adc_samples);
-        	adc_result = 0;
-        	_delay_ms(100);
-	}
-#if 0
-        for(uint8_t i = 0; i < adc_samples; i++)
-        {
-        	uint8_t l = ADCL;
-        	adc_val += (ADCH << 8) | l;
-		_delay_ms(10);
-        }
-        dprintf("ADC: %u\r\n", adc_val / adc_samples);
-#endif
-//        ADCSRA &= _BV(ADSC); /* turn the ADC back off */
-
-}
-#endif
-
 
 static void cmd_o(char **argv, uint8_t argc)
 {
@@ -1109,19 +830,6 @@ static void adc_init(void)
 {
 	ADCSRA = 0;
 	
-	DDRB &= ~_BV(PB4);
-	PORTB &= ~_BV(PB4);
-	
-//	PORTB &= ~_BV(PB4);
-
-//	ADCSRA |= (1<<ADEN);      //Enable ADC module
-//	ADMUX= 0x01;            // configuring PB2 to take input
-//	                        ADMUX = AD_MUX_ADC11;
-//                        ADCSRB = AD_SRB_ADC11;
-
-	//ADMUX = AD_MUX_ADC11;
-//	ADCSRB = AD_SRB_ADC11;
-//	ADMUX = _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
 	ADMUX = _BV(MUX0) | _BV(MUX1) |_BV(REFS0);
 	ADCSRB = _BV(MUX5);
 	DIDR2 |= _BV(ADC11D);
@@ -1151,9 +859,9 @@ static void setup()
 	uint32_t loops = 0;
 	
 	cli();
-#ifdef DEBUG
+
 	uart_init();
-#endif
+
 	dprintf("Starting up and enabling PLL\r\n");
 	PLLFRQ = _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1) | _BV(PLLUSB); /* run at 96MHz */
 	PLLCSR = _BV(PINDIV) | _BV(PLLE);
@@ -1328,7 +1036,7 @@ static void loop()
 
 ISR(TIMER0_COMPA_vect) 
 {
-	OCR4B = sine_wave[((counter += cur_mult) >> 8)];
+	OCR4D = sine_wave[((counter += cur_mult) >> 8)];
 }
 
 int main(void)
