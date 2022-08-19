@@ -479,6 +479,3 @@ rb_string_to_array(char *string, char **parv, int16_t maxpara)
         parv[x] = NULL;
         return x;
 }
-
-
-

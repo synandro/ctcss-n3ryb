@@ -1,5 +1,8 @@
 #define F_CPU 16000000UL
-#define BAUD 9600
+#define BAUD 115200
+#define BAUD_TOL 3
+#define REF_FREQ             25000000
+
 
 
 #include <stdint.h>
@@ -8,6 +11,7 @@
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 #include <avr/eeprom.h>
+#include <avr/wdt.h>
 #include <util/atomic.h>
 #include <stdbool.h>
 #include <string.h>
@@ -26,7 +30,15 @@
 #include "ad9833.h"
 
 buf_head_t uart_rx_buf;
+buf_head_t uart_tx_buf;
 uint32_t vfo_a_freq;
+
+static uint16_t cur_mult;
+static uint16_t counter;
+static uint8_t cur_freq;
+
+
+
 
 /* the different states we can be in.  start in idle mode  */
 enum {
@@ -35,17 +47,30 @@ enum {
 	MODE_PROGRAM,
 };
 
+enum  {
+	HZ_100 = 0,
+	HZ_103_5 = 1,
+	HZ_118_8 = 2,
+	HZ_123 = 3,
+	HZ_127_3 = 4,
+	HZ_131_8 = 5,
+	HZ_141_3 = 6,
+	HZ_146_2 = 7,
+	HZ_167_9 = 8,
+	HZ_179_9 = 9,
+	HZ_NONE = 10,
+};
 
 
 /* these are (Hz * 8) but experimentally checked to be on frequency */
 enum {
 	/* these are (Hz * 8) but experimentally checked to be on frequency */
 
-	MULT_77 = 618,
-	MULT_100 = 800,
+	MULT_77_0 = 618,
+	MULT_100_0 = 800,
 	MULT_103_5 = 828,
 	MULT_118_8 = 949,
-	MULT_123 = 984,
+	MULT_123_0 = 984,
 	MULT_127_3 = 1017,
 	MULT_131_8 = 1052,
 	MULT_141_3 = 1129, 
@@ -91,6 +116,9 @@ enum {
 
 
 };
+
+static uint8_t EEMEM saved_frequency = HZ_123;
+
 
 /* these are the multipliers that were calculated, they need verified ***
 	MULT_67 = 536,
@@ -149,19 +177,6 @@ struct frequencies
 };
 
 
-enum  {
-	HZ_100 = 0,
-	HZ_103_5 = 1,
-	HZ_118_8 = 2,
-	HZ_123 = 3,
-	HZ_127_3 = 4,
-	HZ_131_8 = 5,
-	HZ_141_3 = 6,
-	HZ_146_2 = 7,
-	HZ_167_9 = 8,
-	HZ_179_9 = 9,
-	HZ_NONE = 10,
-};
 
 /*
 
@@ -226,12 +241,69 @@ INDEX=114 R2=51000 R1=680000 vout = 0.558139534883721 index= 114
 
 
 */
+#if 1
+/* So we are using a precomputed frequency table for the LSB and MSB half of the frequency
+ * this all assumes that the clock on the ad9833 is running at 25MHz
+ * 
+        uint32_t freq_data = ((uint64_t)frequency << 28) / REF_FREQ;
+        uint16_t freq_MSB = (freq_data >> 14);  //| FREQ0;
+        uint16_t freq_LSB = (freq_data & 0x3FFF); //| FREQ0;
+
+ */
+struct memory_entry {
+	const uint16_t freq_msb;
+	const uint16_t freq_lsb;
+//	const uint16_t band;
+//	const uint16_t channel;	
+	const uint16_t tone_mult;
+};
+
+struct memory_entry EEMEM band_1[11] = {
+	{ .tone_mult = MULT_107_2, .freq_msb = 5328, .freq_lsb = 1258 }, /* 145.13000 Haymarket  N3KL */
+	{ .tone_mult = MULT_179_9, .freq_msb = 5341, .freq_lsb = 3014 }, /* 145.15000 Martinsburg  W8ORS */
+	{ .tone_mult = MULT_118_8, .freq_msb = 5367, .freq_lsb = 6527 }, /* 145.19000 Moorefield  N8VAA */
+	{ .tone_mult = MULT_141_3, .freq_msb = 5380, .freq_lsb = 8283 }, /* 145.21000 Front Royal High Knob Mountain K4QJZ */
+	{ .tone_mult = MULT_123_0, .freq_msb = 5419, .freq_lsb = 13552 }, /* 145.27000 Meyersdale Hays Mill Fire Tower KQ3M */
+	{ .tone_mult = MULT_146_2, .freq_msb = 5498, .freq_lsb = 7707 }, /* 145.39000 Winchester North Mountain KG4Y */
+	{ .tone_mult = MULT_123_0, .freq_msb = 5537, .freq_lsb = 12976 }, /* 145.45000 Oldtown Warrior Mountain WMA W3YMW */
+	{ .tone_mult = MULT_123_0, .freq_msb = 5564, .freq_lsb = 104 }, /* 145.49000 Bedford  K3NQT */
+};
+
+struct memory_entry EEMEM band_2[11] = {
+	{ .tone_mult = MULT_131_8, .freq_msb = 5324, .freq_lsb = 13107 }, /* 146.62500 New Market Luray Caverns N4YSA */
+	{ .tone_mult = MULT_123_0, .freq_msb = 5403, .freq_lsb = 7261 }, /* 146.74500 Berkeley Springs Cacapon Mountain KK3L */
+	{ .tone_mult = MULT_123_0, .freq_msb = 5432, .freq_lsb = 15309 }, /* 146.79000 Clearville Martin Hill K3NQT */
+	{ .tone_mult = MULT_123_0, .freq_msb = 5442, .freq_lsb = 12530 }, /* 146.80500 Oakland  KB8NUF */
+	{ .tone_mult = MULT_146_2, .freq_msb = 5452, .freq_lsb = 9751 }, /* 146.82000 Winchester Great North Mountain W4RKC */
+	{ .tone_mult = MULT_77_0, .freq_msb = 5472, .freq_lsb = 4194 }, /* 146.85000 Charles Town  WA4TXE */
+	{ .tone_mult = MULT_123_0, .freq_msb = 5491, .freq_lsb = 15020 }, /* 146.88000 Midland Dan's Mountain W3YMW */
+	{ .tone_mult = MULT_100_0, .freq_msb = 5531, .freq_lsb = 3905 }, /* 146.94000 Clear Spring Fairview Mountain W3CWC */
+};
+
+struct memory_entry EEMEM band_3[11] = {
+	{ .tone_mult = MULT_100_0, .freq_msb = 5321, .freq_lsb = 8572 }, /* 147.12000 Chambersburg Clark's Knob W3ACH */
+	{ .tone_mult = MULT_167_9, .freq_msb = 5341, .freq_lsb = 3014 }, /* 147.15000 Blue Knob Ski Resort KB3KWD */
+	{ .tone_mult = MULT_167_9, .freq_msb = 5351, .freq_lsb = 235 }, /* 147.16500 Warrenton  W4VA */
+	{ .tone_mult = MULT_123_0, .freq_msb = 5409, .freq_lsb = 16331 }, /* 147.25500 Martinsburg  WB8YZV */
+	{ .tone_mult = MULT_203_5, .freq_msb = 5419, .freq_lsb = 13552 }, /* 147.27000 Gum Spring  WB4IKL */
+	{ .tone_mult = MULT_103_5, .freq_msb = 5429, .freq_lsb = 10774 }, /* 147.28500 Circleville Spruce Knob N8HON */
+	{ .tone_mult = MULT_146_2, .freq_msb = 5439, .freq_lsb = 7995 }, /* 147.30000 Bluemont Blue Ridge WA4TSC */
+	{ .tone_mult = MULT_131_8, .freq_msb = 5449, .freq_lsb = 5216 }, /* 147.31500 Basye Great North Mountain K4MRA */
+	{ .tone_mult = MULT_123_0, .freq_msb = 5468, .freq_lsb = 16043 }, /* 147.34500 Clear Spring  K3MAD */
+	{ .tone_mult = MULT_127_3, .freq_msb = 5478, .freq_lsb = 13264 }, /* 147.36000 Skyline  K7SOB */
+};
+
+
+
+
+#endif
+
 
 static const struct frequencies freq_table[] = {
-	{ .tone = "100",	.mult = MULT_100, 	.start = 950,	.end = 1024,	.channel = 1	},
+	{ .tone = "100",	.mult = MULT_100_0, 	.start = 950,	.end = 1024,	.channel = 1	},
 	{ .tone = "103.5",	.mult = MULT_103_5, 	.start = 860,	.end = 920,	.channel = 2	},
 	{ .tone = "118.5",	.mult = MULT_118_8, 	.start = 751,	.end = 860,	.channel = 3	},
-	{ .tone = "123",  	.mult = MULT_123, 	.start = 651,	.end = 750,	.channel = 4	},
+	{ .tone = "123",  	.mult = MULT_123_0, 	.start = 651,	.end = 750,	.channel = 4	},
 	{ .tone = "127.3",	.mult = MULT_127_3, 	.start = 550,	.end = 650,	.channel = 5 	},
 	{ .tone = "131.8",	.mult = MULT_131_8, 	.start = 450,	.end = 550,	.channel = 6 	},
 	{ .tone = "141.3",	.mult = MULT_141_3, 	.start = 330,	.end = 450,	.channel = 7	},
@@ -325,11 +397,6 @@ static const uint8_t sine_wave[256] = {
 
 
 
-static uint16_t cur_mult;
-static uint16_t counter;
-static uint8_t cur_freq;
-
-static uint8_t EEMEM saved_frequency = HZ_123;
 
 
 static uint32_t atoul(const char *num)
@@ -343,7 +410,7 @@ static uint32_t atoul(const char *num)
         return val;
 }
 
-static uint8_t atous(const char *num)
+static  uint8_t atous(const char *num)
 {
 	uint8_t val = 0;
         while (*num && (*num >= '0' && *num <= '9'))
@@ -355,12 +422,12 @@ static uint8_t atous(const char *num)
 }
 
 
-static inline  __attribute__((always_inline)) void led_off(void)
+static inline __attribute__((always_inline)) void led_off(void)
 {
 	PORTB &= ~(1 << PB0);
 }
 
-static inline __attribute__((always_inline)) void led_on(void)
+static inline  __attribute__((always_inline)) void led_on(void)
 {
 	PORTB |= (1 << PB0);
 }
@@ -455,7 +522,36 @@ static void loop_all(void)
 }
 #endif
 
-#ifdef DEBUG
+#if 0
+static int16_t rb_linebuf_flush(buf_head_t * bufhead)
+{
+	buf_line_t *bufline;
+	int16_t retval = 0;
+
+	if(bufhead->list.head == NULL)
+		return -1;
+
+	bufline = bufhead->list.head->data;
+	if(!bufline->terminated)
+                return -1;
+	
+	if(!bit_is_set(UCSR1A, UDRE1))
+		return -1;
+	while(bit_is_set(UCSR1A, UDRE1))
+	{
+		UDR1 = *(bufline->buf + bufhead->writeofs);
+		retval++;
+		bufhead->writeofs++;
+	}
+	
+	if(bufhead->writeofs == bufline->len)
+	{
+		bufhead->writeofs = 0;
+		rb_linebuf_done_line(bufhead, bufline, bufhead->list.head);
+	}
+	return retval;
+}
+#endif
 
 static int uart_putchar(char c, FILE *stream) 
 {
@@ -500,7 +596,6 @@ static void uart_init(void)
 	stdin  = &uart_input;
 //	cmdstacklen = 0;
 }
-#endif 
 
 static void setup_pwm(void)
 {
@@ -533,39 +628,11 @@ static inline  __attribute__((always_inline)) void SPI_write(const uint8_t data)
 
 
 
-static inline void SPI_write16 (const uint16_t data)          
-//static void SPI_write16 (const uint16_t data)          
+static __attribute__((noinline)) void SPI_write16 (const uint16_t data)          
 {
 	SPI_write((data >> 8) & 0xFF);
 	SPI_write(data & 0xFF);
 }
-
-
-#if 0
-// AD9833 Control Register helpers
-#define CR_B28_COMBINED      0x2000
-#define CR_FSELECT_0         0x0000
-#define CR_PSELECT_0         0x0000
-#define CR_RESET             0x0100
-#define CR_SLEEP1            0x0080
-#define CR_SLEEP12           0x0040
-#define CR_OPBITEN           0x0020
-#define CR_DIV2              0x0008
-#define CR_MODE_D1_TRIANGLE  0x0002
-#define CR_MODE_D1_SINE      0x0000
-
-// Mnemonics for wave forms
-#define SINE                 (CR_B28_COMBINED | CR_MODE_D1_SINE)
-#define SQUARE               (CR_B28_COMBINED | CR_OPBITEN)
-#define FAST_SQUARE          (SQUARE | CR_DIV2)
-#define TRIANGLE             (CR_B28_COMBINED | CR_MODE_D1_TRIANGLE)
-
-#define FREQ0                0x4000
-#define PHASE0               0xC000
-#define SPI_CLOCK_SPEED      12000000
-
-#endif
-#define REF_FREQ             25000000
 
 
 static void inline ad9833_sselect_high(void)
@@ -577,29 +644,73 @@ static void inline ad9833_sselect_high(void)
 static void inline ad9833_sselect_low(void)
 {
         PORTF &= ~_BV(PF7);
-        _delay_ms(10);
+        _delay_us(10);
 }
 
 
 void spi_init(void)
 {
-	// PB1 = SCLK, PB2 = MOSI, PB3 = MISO, PE6 = slave select
+	// PB1 = SCLK, PB2 = MOSI, PB3 = MISO
+	
 	DDRB |= _BV(PB1) | _BV(PB2);
-	DDRE |= _BV(PE6); // slave select 
-	PORTE |= (1 << PE6); 
-	PORTB |= (1 << PB1);
+	PORTB &= ~_BV(PB1);
+	PORTB &= ~_BV(PB2);
 	SPCR  = _BV(SPE)| _BV(MSTR)| _BV(SPR0) | _BV(CPOL);
 }
 
-void ad9833_init(void)
+static bool dds_power;
+
+static void dds_amp_on(void)
 {
-//	PORTF |= _BV(PF7);
-	DDRF |= _BV(PF7);
+	PORTF |= _BV(PF4); 
+}
+static void dds_amp_off(void)
+{
+	PORTF &= ~_BV(PF4);
+}
+
+static void ad9833_off(void)
+{
+	PORTF &= ~_BV(PF5); 
+	dds_power = 0;
+}
+
+static void ad9833_on(void)
+{
+	DDRF |= _BV(PF5);
+	PORTF |= _BV(PF5);
+	dds_power = 1;
+}
+
+static void ad9833_init(void)
+{
+	DDRF |= _BV(PF4);
+
+	spi_init();
+
+	ad9833_on();
+	_delay_ms(10);
+
+	DDRF |= _BV(PF7); // slave select
+
 	ad9833_sselect_low();
 	SPI_write16(AD9833_RESET);
 	ad9833_sselect_high();
 }
 
+
+static void ad9833_shutdown(void)
+{
+	ad9833_sselect_low();
+	SPI_write16(AD9833_RESET);
+	ad9833_sselect_high();
+	
+	PORTF &= ~_BV(PF5); 
+
+	ad9833_sselect_low();
+	dds_power = 0;
+	SPCR = 0;
+}
 
 
 #if 1
@@ -609,7 +720,11 @@ static void __attribute__((noinline)) setWave(uint32_t frequency)
 	uint32_t freq_data = ((uint64_t)frequency << 28) / REF_FREQ;
 	uint16_t freq_MSB = (freq_data >> 14);  //| FREQ0;
 	uint16_t freq_LSB = (freq_data & 0x3FFF); //| FREQ0;
+
 	dprintf("Setting with freq_data: %lu\r\n", freq_data);
+
+	if(dds_power == false)
+		ad9833_init();
 
 	ad9833_sselect_low();
 
@@ -654,6 +769,14 @@ static void cmd_r(char **argv, uint8_t argc)
 	SPI_write16(AD9833_FSELECT0);
 }
 
+static void cmd_f(char **argv, uint8_t argc)
+{
+	vfo_a_freq = atoul(argv[1]);
+	dprintf("Setting VFO A to %lu\r\n", vfo_a_freq);
+	setWave(vfo_a_freq);
+
+}
+
 static void cmd_vfo_a(char **argv, uint8_t argc)
 {
 	uint32_t tfreq;
@@ -666,7 +789,7 @@ static void cmd_vfo_a(char **argv, uint8_t argc)
 
 	vfo_a_freq = tfreq = atoul(&argv[0][2]);
 	setWave(tfreq);
-	dprintf("Setting wave to tfreq: %lu\r\n", vfo_a_freq);
+	dprintf("\r\nSetting wave to tfreq: %lu\r\n", vfo_a_freq);
 	dprintf("FA;%lu;\r\n", tfreq);
 
 }
@@ -678,18 +801,9 @@ static void cmd_vfo_b(const char *buf, size_t len)
 
 }
 
-
-static void cmd_hi(const char *cmd, size_t len)
-{
-	dprintf("HI!\n");
-	if(len > 0)
-	{
-		
-	}
-
-}
 #endif
 
+#if 0
 #define AD_MUX_ADC0 0x0 // F0
 #define AD_MUX_ADC1 (_BV(MUX0)) // F1
 #define AD_MUX_ADC4 (_BV(MUX2))  // F4
@@ -697,6 +811,12 @@ static void cmd_hi(const char *cmd, size_t len)
 #define AD_MUX_ADC6 (_BV(MUX1) | _BV(MUX2)) // 20 // F6
 #define AD_MUX_ADC7 (_BV(MUX0) | _BV(MUX1) | _BV(MUX2)) // 21 // F7
 
+#define AD_DID_ADC0_PORT DIDR0
+#define AD_DID_ADC1_PORT DIDR0
+#define AD_DID_ADC4_PORT DIDR0
+#define AD_DID_ADC5_PORT DIDR0
+#define AD_DID_ADC6_PORT DIDR0
+#define AD_DID_ADC7_PORT DIDR0
 
 
 #define AD_MUX_ADC8 (_BV(MUX5)) // 22 // D4
@@ -706,6 +826,16 @@ static void cmd_hi(const char *cmd, size_t len)
 #define AD_MUX_ADC12 (_BV(MUX5) | _BV(MUX2)) // 110 // B5
 #define AD_MUX_ADC13 (_BV(MUX5) | _BV(MUX2) | _BV(MUX0)) // 111 // B6
 #define AD_MUX_TEMP (_BV(MUX1) | _BV(MUX2) | _BV(MUX3))
+
+
+#define AD_DID_ADC8_PORT DIDR1
+#define AD_DID_ADC9_PORT DIDR1
+#define AD_DID_ADC10_PORT DIDR1
+#define AD_DID_ADC11_PORT DIDR1
+#define AD_DID_ADC12_PORT DIDR1
+#define AD_DID_ADC13_PORT DIDR1
+
+
 
 
 #define AD_SRB_ADC0 0
@@ -742,58 +872,69 @@ static void cmd_adc(char **argv, uint8_t argc)
 		case 0:
 			ADMUX = AD_MUX_ADC0;
 			ADCSRB = AD_SRB_ADC0;
+			AD_DID_ADC0_PORT |= _BV(ADC0D);
 			break;
 		case 1:
 			ADMUX = AD_MUX_ADC1;
 			ADCSRB = AD_SRB_ADC1;
-			
+			AD_DID_ADC1_PORT |= _BV(ADC1D);
 			break;
 		case 4:
 			ADMUX = AD_MUX_ADC4;
 			ADCSRB = AD_SRB_ADC4;
-
+			AD_DID_ADC4_PORT |= _BV(ADC4D);
 			break;
 		case 5:
 			ADMUX = AD_MUX_ADC5;
 			ADCSRB = AD_SRB_ADC5;
+			AD_DID_ADC5_PORT |= _BV(ADC5D);
 			
 			break;
 		case 6:
 			ADMUX = AD_MUX_ADC6;
 			ADCSRB = AD_SRB_ADC6;
+			AD_DID_ADC6_PORT |= _BV(ADC6D);
+
 			break;
 		case 7:
 			ADMUX = AD_MUX_ADC7;
 			ADCSRB = AD_SRB_ADC7;
+			AD_DID_ADC7_PORT |= _BV(ADC7D);
+
 			break;
 		case 8:
 			ADMUX = AD_MUX_ADC8;
 			ADCSRB = AD_SRB_ADC8;
-
+			AD_DID_ADC8_PORT |= _BV(ADC8D);
 			break;
 			
 		case 9:
 			ADMUX = AD_MUX_ADC9;
 			ADCSRB = AD_SRB_ADC9;
+			AD_DID_ADC9_PORT |= _BV(ADC9D);
 
 			break;
 		case 10:
 			ADMUX = AD_MUX_ADC10;
 			ADCSRB = AD_SRB_ADC10;
+			AD_DID_ADC10_PORT |= _BV(ADC10D);
 			break;
 		case 11:
 			ADMUX = AD_MUX_ADC11;
 			ADCSRB = AD_SRB_ADC11;
+			AD_DID_ADC11_PORT |= _BV(ADC11D);
 			
 			break;
 		case 12:
 			ADMUX = AD_MUX_ADC12;
 			ADCSRB = AD_SRB_ADC12;
+			AD_DID_ADC12_PORT |= _BV(ADC12D);
 
 			break;
 		case 13:
 			ADMUX = AD_MUX_ADC13;
 			ADCSRB = AD_SRB_ADC13;
+			AD_DID_ADC13_PORT |= _BV(ADC13D);
 			break;
 		case 120:
 			ADMUX = AD_MUX_TEMP;
@@ -808,25 +949,18 @@ static void cmd_adc(char **argv, uint8_t argc)
 
 
 	ADCSRA = _BV(ADEN) | _BV(ADATE);      //Enable ADC module
-
-
-	//ADMUX = _BV(MUX0) | _BV(MUX1) | _BV(MUX2);
-//        ADMUX= 0x01;            // configuring PB2 to take input
         ADCSRB= 0x00;                   //Configuring free running mode
         ADCSRA |= (1<<ADSC)|(1<<ADATE);   //Start ADC conversion and enabling Auto trigger
 
 
 	ADCSRA |= _BV(ADEN); // | _BV(ADATE);	/* turn on the ADC and auto update */ 
 
-	ADMUX |= _BV(REFS0); 
+//	ADMUX |= _BV(REFS1); 
 	ADCSRA |= _BV(ADSC);			/* lets start a conversion */
 	_delay_ms(10);
 	
-//        uint16_t adc_val = 0;
-
-	while(1)
+	for(uint8_t i = 0; i < 8; i++)
 	{
-//        while(1)
 		while(!bit_is_set(ADCSRA,ADSC));
 
         	uint16_t adc_val = ADCW;
@@ -839,7 +973,7 @@ static void cmd_adc(char **argv, uint8_t argc)
         	
         	dprintf("ADC: adc_val: %u average: %u\r\n", adc_val, adc_result / adc_samples);
         	adc_result = 0;
-        	_delay_ms(5000);
+        	_delay_ms(100);
 	}
 #if 0
         for(uint8_t i = 0; i < adc_samples; i++)
@@ -853,16 +987,44 @@ static void cmd_adc(char **argv, uint8_t argc)
 //        ADCSRA &= _BV(ADSC); /* turn the ADC back off */
 
 }
+#endif
 
 
+static void cmd_o(char **argv, uint8_t argc)
+{
+	dprintf("Shutting off ad9833\r\n");
+	ad9833_shutdown();	
+
+}
+
+static void cmd_d(char **argv, uint8_t argc)
+{
+	dprintf("Shutting off dds amp\r\n");
+	dds_amp_off();
+}
+
+
+static void cmd_reboot(char **argv, uint8_t argc)
+{
+        typedef void (*do_reboot_t)(void);
+        const do_reboot_t do_reboot = (do_reboot_t)((FLASHEND - 511) >> 1);
+        cli();
+	MCUSR = 0; 
+        TCCR0A = TCCR4A = 0; // make sure interrupts are off and timers are reset.
+        do_reboot();
+}
 
 struct command_struct commands[] = {
 	{ .cmd = "FA", .handler = cmd_vfo_a, .iscat = 1 },
+	{ .cmd = "f", .handler = cmd_f   },
+	{ .cmd = "o", .handler = cmd_o },
 //	{ .cmd = "FB", .handler = cmd_vfo_b },
 //	{ .cmd = "HI", .handler = cmd_hi },
 	{ .cmd = "T", .handler = cmd_t },
 	{ .cmd = "R", .handler = cmd_r },
-	{ .cmd = "ADC", .handler = cmd_adc, .iscat = 0 },
+//	{ .cmd = "ADC", .handler = cmd_adc, .iscat = 0 },
+	{ .cmd = "d", .handler = cmd_d },
+	{ .cmd = "reboot", .handler = cmd_reboot },
 	{ .cmd = NULL, .handler = NULL }, 
 
 };
@@ -945,10 +1107,25 @@ static void process_uart(void)
 
 static void adc_init(void)
 {
-	ADCSRA |= (1<<ADEN);      //Enable ADC module
-	ADMUX= 0x01;            // configuring PB2 to take input
-	ADCSRB= 0x00;                   //Configuring free running mode
-	ADCSRA |= (1<<ADSC)|(1<<ADATE);   //Start ADC conversion and enabling Auto trigger
+	ADCSRA = 0;
+	
+	DDRB &= ~_BV(PB4);
+	PORTB &= ~_BV(PB4);
+	
+//	PORTB &= ~_BV(PB4);
+
+//	ADCSRA |= (1<<ADEN);      //Enable ADC module
+//	ADMUX= 0x01;            // configuring PB2 to take input
+//	                        ADMUX = AD_MUX_ADC11;
+//                        ADCSRB = AD_SRB_ADC11;
+
+	//ADMUX = AD_MUX_ADC11;
+//	ADCSRB = AD_SRB_ADC11;
+//	ADMUX = _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+	ADMUX = _BV(MUX0) | _BV(MUX1) |_BV(REFS0);
+	ADCSRB = _BV(MUX5);
+	DIDR2 |= _BV(ADC11D);
+	ADCSRA |= _BV(ADSC) | _BV(ADATE) | _BV(ADEN);
 }
 
 
@@ -957,31 +1134,43 @@ static void adc_init(void)
 static void setup_linebuf(void)
 {
 	rb_linebuf_newbuf(&uart_rx_buf);
+	rb_linebuf_newbuf(&uart_tx_buf);
 }
 
 
+static uint16_t adc_avg(void);
 
 
 
 static void setup() 
 {
+	MCUSR = ~(1 << WDRF);
+	wdt_disable();
+
 	vfo_a_freq = 8300000;
 	uint32_t loops = 0;
+	
 	cli();
 #ifdef DEBUG
 	uart_init();
 #endif
 	dprintf("Starting up and enabling PLL\r\n");
-	PLLFRQ = _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1) ;
+	PLLFRQ = _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1) | _BV(PLLUSB); /* run at 96MHz */
 	PLLCSR = _BV(PINDIV) | _BV(PLLE);
+
 	/* shut off the USB controller before we enable interrupts again - we'll go splat otherwise */
 	USBCON = 0;
 
+	
 	while((PLLCSR & (1<<PLOCK)) == 0)
 	{
 		dprintf("ctcss-n3ryb - waiting for PLL lock\r\n");	
 	}
 
+	dprintf("shutting off stuff\r\n");
+	PRR0 |= _BV(PRTWI);
+	PRR0 |= _BV(PRUSB);
+	
 	setup_linebuf();	
 	dprintf("setting up pwm timers\r\n");
 	setup_pwm();
@@ -1001,6 +1190,10 @@ static void setup()
  // 	setWave(SINE, vfo_a_freq);
  	ad9833_init();
 
+ 	dprintf("Starting adc_init()\r\n");
+ 	adc_init();
+ 	
+
   	while(1)
   	{
   		loops++;
@@ -1010,6 +1203,9 @@ static void setup()
 	  		process_uart();
 	  		process_commands();
 		}
+		if(loops % 16384 == 0)
+			dprintf("ADC average: %u\r\n", adc_avg());
+
   	}
   	
 #ifdef TESTING	
@@ -1020,14 +1216,14 @@ static void setup()
 
 static uint16_t adc_avg(void)
 {
-	const uint8_t adc_samples = 8; /* keep this powers of 2 otherwise the division is no longer a bit shift */
+	const uint8_t adc_samples = 16; /* keep this powers of 2 otherwise the division is no longer a bit shift */
 	uint16_t adc_val = 0;
 
 	for(uint8_t i = 0; i < adc_samples; i++)
 	{
+		while(!bit_is_set(ADCSRA,ADSC));
 		adc_val += ADCW;
-//		adc_val += (ADCL|(ADCH<<8));
-		_delay_ms(5);
+		_delay_ms(10);
 	}
 	return (adc_val / adc_samples);
 }
@@ -1046,7 +1242,7 @@ static inline bool compare_adc(const uint16_t adc_val, const uint16_t adc2_val, 
 		return false;
 }
 
-
+#if 0
 static void loop() 
 {
 	uint16_t adc_val;
@@ -1128,7 +1324,7 @@ static void loop()
 		}
 	}
 }
-
+#endif
 
 ISR(TIMER0_COMPA_vect) 
 {
@@ -1138,6 +1334,6 @@ ISR(TIMER0_COMPA_vect)
 int main(void)
 {
 	setup();
-	loop();	
+//	loop();	
 }
 
