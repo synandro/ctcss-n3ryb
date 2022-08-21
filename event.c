@@ -1,19 +1,59 @@
+/*
+ * event.c - event loop stuff
+ * 
+ *  Borrowed from ircd-ratbox and adopted for AVR 
+ *  Copyright (C) 2022 Aaron Sethman <androsyn@ratbox.org>
+ * 
+ *  The original boilerplate from ircd-ratbox
+ *
+ *  Copyright (C) 1998-2000 Regents of the University of California
+ *  Copyright (C) 2001-2002 Hybrid Development Team
+ *  Copyright (C) 2002-2012 ircd-ratbox development team
+ *
+ *  Code borrowed from the squid web cache by Adrian Chadd.
+ *  Original header:
+ *
+ *  DEBUG: section 41   Event Processing
+ *  AUTHOR: Henrik Nordstrom
+ *
+ *  SQUID Internet Object Cache  http://squid.nlanr.net/Squid/
+ *  ----------------------------------------------------------
+ *
+ *  Squid is the result of efforts by numerous individuals from the
+ *  Internet community.  Development is led by Duane Wessels of the
+ *  National Laboratory for Applied Network Research and funded by the
+ *  National Science Foundation.  Squid is Copyrighted (C) 1998 by
+ *  the Regents of the University of California.  Please see the
+ *  COPYRIGHT file for full details.  Squid incorporates software
+ *  developed and/or copyrighted by other sources.  Please see the
+ *  CREDITS file for full details.
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+ *  USA
+ *
+
+ *
+ */
+
 #include <stdint.h>
-#include <stdlib.h>
-#include <util/delay.h>
-#include <avr/pgmspace.h>
-#include <avr/interrupt.h>
-#include <avr/eeprom.h>
-#include <avr/wdt.h>
-#include <util/atomic.h>
 #include <stdbool.h>
 #include <string.h>
-#include <avr/io.h>
-//#include <util/setbaud.h>
-#include <stdio.h>
+#include <avr/interrupt.h>
+#include <util/atomic.h>
 
 #include "tools.h"
-
 #include "event.h"
 
 #define MAX_EVENTS 12
@@ -61,11 +101,10 @@ rb_event_add(EVH * func, void *arg, uint32_t frequency, uint16_t count)
 	if(count > 0)
 		ev->counter = true;
 	ev->frequency = frequency;
-	
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-	{
-		now = tick;
-	}
+
+
+	now = current_ts();
+
 	ev->when = now;
 
 	if((ev->when < event_time_min) || (event_time_min == -1))
