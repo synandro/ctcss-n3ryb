@@ -21,8 +21,9 @@ EXTRA_FLAGS += -DRESET_ACTIVE
 endif
 # EXTRA_FLAGS += -DF_CPU=8000000L -DCLOCK_SOURCE=6 
 
-COMPILE    = avr-gcc -save-temps=obj -Wall  -mmcu=$(DEVICE) -Os -fno-unroll-loops  -finline-functions   -fverbose-asm -std=gnu11
-OBJS       = ctcss-n3ryb.o
+COMPILE    = avr-gcc -save-temps=obj -Wall -Wextra -Wno-unused-parameter -mmcu=$(DEVICE) -Os -fno-unroll-loops  -finline-functions   -fverbose-asm -std=gnu11 -DF_CPU=16000000L -DBAUD_TOL=3 -DBAUD=115200 -DREF_FREQ=25000000  # -flto
+
+OBJS       = ctcss-n3ryb.o event.o tools.o
 OUTNAME    := $(notdir $(patsubst %/,%,$(dir $(realpath $(firstword $(MAKEFILE_LIST))))))
 
 
@@ -42,7 +43,9 @@ all-1: test-serial.hex
 #	micronucleus $^
 
 install: $(OUTNAME).hex
-	avrdude -c arduino -p m32u4 -P /dev/ttyUSB1 -v -b 115200  -U flash:w:$^
+	pkill -TSTP minicom || true
+	avrdude -c arduino -p m32u4 -P /dev/ttyUSB2 -v -b 115200  -U flash:w:$^
+
 
 
 install-avr: $(OUTNAME).hex
@@ -65,7 +68,9 @@ else
 endif
 	echo "lock_byte = 0x00ff" >> fuse.txt
 
-ctcss-n3ryb.o: ctcss-n3ryb.c tools.h ad9833.h
+ctcss-n3ryb.o: ctcss-n3ryb.c 
+
+# event.o: event.c
 
 
 %.bin: %.elf
@@ -82,7 +87,7 @@ clean:
 	rm -f *.elf *.bin *.hex *.map *.eep
 	rm -f fuse.txt
 
-%.elf: %.o
+ctcss-n3ryb.elf: $(OBJS)
 	$(COMPILE) -Wall -Wextra -std=gnu11 -Wl,--gc-sections -Wl,-Map,$(basename $@).map -o $@ $^
 	avr-size $@ -C --mcu=$(DEVICE)
 
