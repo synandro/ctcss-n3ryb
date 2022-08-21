@@ -1,9 +1,13 @@
+/* 
+ * event.h - definitions for event.c
+ *
+ */
 #ifndef EVENT_H
 #define EVENT_H 1
+#include <util/atomic.h>
+
 
 typedef void EVH(void *);
-
-
 
 struct ev_entry
 {

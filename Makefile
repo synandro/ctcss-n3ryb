@@ -23,7 +23,7 @@ endif
 
 COMPILE    = avr-gcc -save-temps=obj -Wall -Wextra -Wno-unused-parameter -mmcu=$(DEVICE) -Os -fno-unroll-loops  -finline-functions   -fverbose-asm -std=gnu11 -DF_CPU=16000000L -DBAUD_TOL=3 -DBAUD=115200 -DREF_FREQ=25000000  # -flto
 
-OBJS       = ctcss-n3ryb.o event.o tools.o
+OBJS       = ctcss-n3ryb.o event.o tools.o pwm-sine.o
 OUTNAME    := $(notdir $(patsubst %/,%,$(dir $(realpath $(firstword $(MAKEFILE_LIST))))))
 
 

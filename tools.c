@@ -1,16 +1,35 @@
+/* 
+ *  tools.c: Various functions needed here and there.
+ *  
+ *  Copyright (C) 2022 Aaron Sethman <androsyn@ratbox.org>
+ *
+ *  More stuff borrowed from ircd-ratbox, mostly.  
+ * 
+ *  Copyright (C) 1996-2002 Hybrid Development Team
+ *  Copyright (C) 2002-2012 ircd-ratbox development team
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+ *  USA
+ */
+
 #include <stdint.h>
 #include <stdlib.h>
-#include <util/delay.h>
-#include <avr/pgmspace.h>
-#include <avr/interrupt.h>
-#include <avr/eeprom.h>
-#include <avr/wdt.h>
 #include <util/atomic.h>
 #include <stdbool.h>
 #include <string.h>
 #include <avr/io.h>
-//#include <util/setbaud.h>
-#include <stdio.h>
 
 #include "tools.h"
 
@@ -45,20 +64,14 @@ buf_line_t *
 rb_linebuf_new_line(buf_head_t * bufhead)
 {
 	buf_line_t *bufline;
-//	rb_dlink_node *node;
 
 	bufline = rb_linebuf_allocate();
 	if(bufline == NULL)
 		return NULL;
-//	++bufline_count;
 
 
 	/* Stick it at the end of the buf list */
 	rb_dlinkAddTail(bufline, &bufline->node, &bufhead->list);
-
-	/* And finally, update the allocated size */
-//	bufhead->alloclen++;
-//	bufhead->numlines++;
 
 	return bufline;
 }
@@ -340,8 +353,6 @@ rb_linebuf_get(buf_head_t * bufhead, char *buf, int16_t buflen, bool partial, bo
 	return cpylen;
 }
 
-
-#define MAXPARA 8
 
 /* parv[0] == source, and parv[LAST] == NULL */
 // static char *para[MAXPARA + 2];
