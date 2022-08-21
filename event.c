@@ -22,7 +22,7 @@
 volatile uint32_t tick;
 
 static rb_dlink_list event_list;
-static uint32_t event_time_min;
+static int32_t event_time_min = -1;
 static struct ev_entry event_heap[MAX_EVENTS];
 
 static struct ev_entry *event_alloc(void)
@@ -92,7 +92,7 @@ void rb_event_init()
 
 
 static void
-rb_set_back_events(uint32_t by)
+rb_set_back_events(int32_t by)
 {
 	rb_dlink_node *ptr;
 	struct ev_entry *ev;
@@ -111,7 +111,7 @@ void rb_event_run(void)
 {
 	rb_dlink_node *ptr, *next;
 	struct ev_entry *ev;
-	uint32_t now;
+	int32_t now;
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
@@ -119,13 +119,13 @@ void rb_event_run(void)
 	}
 
 	/* reset the counter before it gets anywhere near close to overflow */	
-	if(now > INT32_MAX) 
+	if(now > (INT32_MAX / 2)) 
 	{
+		rb_set_back_events((INT32_MAX / 2) + 1000);
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 		{
-			tick = tick - INT32_MAX;
+			tick = tick - (INT32_MAX / 2);
 		}
-		rb_set_back_events(INT32_MAX); 
 	}
 
 	RB_DLINK_FOREACH_SAFE(ptr, next, event_list.head)
@@ -150,4 +150,14 @@ void rb_event_run(void)
 				event_time_min = ev->when;
 		}
 	}
+}
+
+void
+rb_event_delete(struct ev_entry *ev)
+{
+        if(ev == NULL)
+                return;
+
+        rb_dlinkDelete(&ev->node, &event_list);
+        event_free(ev);
 }
