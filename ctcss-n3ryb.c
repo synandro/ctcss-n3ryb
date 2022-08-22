@@ -20,7 +20,7 @@
 
 #define DEBUG 1
 #ifdef DEBUG
-#define dprintf(...) printf(__VA_ARGS__)
+#define dprintf(...) printf_P(__VA_ARGS__)
 #else
 #define dprintf(...)
 #endif
@@ -32,16 +32,8 @@
 
 /* globals - we have globals.  it's embedded. whatever */
 
-
-//volatile uint32_t tick;
-
 buf_head_t uart_rx_buf;
 buf_head_t uart_tx_buf;
-
-// uint32_t vfo_a_freq;
-
-
-
 
 uint16_t current_band;
 uint16_t current_channel;
@@ -160,10 +152,10 @@ struct memory_entry {
 
 
 #if 1
-struct memory_entry EEMEM band_1[11] = {};
-struct memory_entry EEMEM band_2[11] = {};
+struct memory_entry band_1[11] EEMEM = {};
+struct memory_entry band_2[11] EEMEM = {};
 
-struct memory_entry EEMEM band_3[11] = {
+struct memory_entry band_3[11] EEMEM = {
 	{},
 	{ .tone_mult = MULT_107_2, .freq_msb = 5328, .freq_lsb = 1258 }, /* 145.13000 Haymarket  N3KL */
 	{ .tone_mult = MULT_179_9, .freq_msb = 5341, .freq_lsb = 3014 }, /* 145.15000 Martinsburg  W8ORS */
@@ -175,9 +167,9 @@ struct memory_entry EEMEM band_3[11] = {
 	{ .tone_mult = MULT_123_0, .freq_msb = 5564, .freq_lsb = 104 }, /* 145.49000 Bedford  K3NQT */
 };
 
-struct memory_entry EEMEM band_4[11] = {};
+struct memory_entry band_4[11] EEMEM = {};
 
-struct memory_entry EEMEM band_5[11] = {
+struct memory_entry band_5[11] EEMEM = {
 	{},
 	{ .tone_mult = MULT_131_8, .freq_msb = 5324, .freq_lsb = 13107 }, /* 146.62500 New Market Luray Caverns N4YSA */
 	{ .tone_mult = MULT_123_0, .freq_msb = 5403, .freq_lsb = 7261 }, /* 146.74500 Berkeley Springs Cacapon Mountain KK3L */
@@ -191,7 +183,7 @@ struct memory_entry EEMEM band_5[11] = {
 
 //struct memory_entry EEMEM band_6[11] = {};
 
-struct memory_entry EEMEM band_6[11] = {
+struct memory_entry band_6[11] EEMEM = {
 	{},
 	{ .tone_mult = MULT_100_0, .freq_msb = 5321, .freq_lsb = 8572 }, /* 147.12000 Chambersburg Clark's Knob W3ACH */
 	{ .tone_mult = MULT_167_9, .freq_msb = 5341, .freq_lsb = 3014 }, /* 147.15000 Blue Knob Ski Resort KB3KWD */
@@ -206,7 +198,7 @@ struct memory_entry EEMEM band_6[11] = {
 };
 
 
-struct memory_entry EEMEM band_7[11] = {
+struct memory_entry band_7[11] EEMEM = {
 	{},
 	{ .tone_mult = MULT_100_0, .freq_msb = 5321, .freq_lsb = 8572 }, /* 147.12000 Chambersburg Clark's Knob W3ACH */
 	{ .tone_mult = MULT_167_9, .freq_msb = 5341, .freq_lsb = 3014 }, /* 147.15000 Blue Knob Ski Resort KB3KWD */
@@ -220,9 +212,7 @@ struct memory_entry EEMEM band_7[11] = {
 	{ .tone_mult = MULT_127_3, .freq_msb = 5478, .freq_lsb = 13264 }, /* 147.36000 Skyline  K7SOB */
 };
 
-struct memory_entry EEMEM band_8[11];
-
-
+struct memory_entry band_8[11] EEMEM ;
 
 #endif
 
@@ -590,10 +580,10 @@ static void cmd_f(char **argv, uint8_t argc)
 	uint32_t vfo_a_freq = atoul(argv[1]);
 	if(vfo_a_freq > 14000000)
 	{
-		dprintf("\r\nF: frequency too high\r\n");
+		dprintf(PSTR("\r\nF: frequency too high\r\n"));
 		return;
 	}
-	dprintf("\r\nF: Setting VFO A to %lu\r\n", vfo_a_freq);
+	dprintf(PSTR("\r\nF: Setting VFO A to %lu\r\n"), vfo_a_freq);
 	setWave(vfo_a_freq);
 
 }
@@ -604,7 +594,7 @@ static void cmd_tone(char **argv, uint8_t argc)
 		return;
 		
 	set_ctcss(atoul(argv[1]));
-	dprintf("\r\nF: Set frequency to (%u / 8)Hz \r\n", cur_mult);
+	dprintf(PSTR("\r\nF: Set frequency to (%u / 8)Hz \r\n"), cur_mult);
 
 
 }
@@ -618,19 +608,19 @@ static void cmd_adc(char **argv, uint8_t argc)
 	if(argc == 1)
 	
 	adc_avg_channel(&channel, &band);
-	dprintf("\r\nCMD_ADC: %u %u\r\n", channel, band);
+	dprintf(PSTR("\r\nCMD_ADC: %u %u\r\n"), channel, band);
 	
 }
 
 static void cmd_adcoff(char **argv, uint8_t argc)
 {
-	dprintf("\r\nADC OFF\r\n");
+	dprintf(PSTR("\r\nADC OFF\r\n"));
 	rb_event_delete(read_channel_ev);
 }
 
 static void cmd_adcon(char **argv, uint8_t argc)
 {
-	dprintf("\r\nADC ON\r\n");
+	dprintf(PSTR("\r\nADC ON\r\n"));
 	read_channel_ev = rb_event_add(read_channel, NULL, 5000, 0);
 }
 
@@ -642,20 +632,20 @@ static void cmd_vfo_a(char **argv, uint8_t argc)
 
 	if(argv[0][1] == ';') 
 	{
-		dprintf("FA;%lu;\r\n", vfo_a_freq);
+		dprintf(PSTR("FA;%lu;\r\n"), vfo_a_freq);
 	}
 		
 
 	vfo_a_freq = tfreq = atoul(&argv[0][2]);
 	setWave(tfreq);
-	dprintf("\r\nSetting wave to tfreq: %lu\r\n", vfo_a_freq);
-	dprintf("FA;%lu;\r\n", tfreq);
+	dprintf(PSTR("\r\nSetting wave to tfreq: %lu\r\n"), vfo_a_freq);
+	dprintf(PSTR("FA;%lu;\r\n"), tfreq);
 
 }
 
 static void cmd_vfo_b(const char *buf, size_t len)
 {
-	dprintf("Got cmd_vfo_a: %s %d\r\n", buf, len);
+	dprintf(PSTR("Got cmd_vfo_a: %s %d\r\n"), buf, len);
 
 
 }
@@ -664,20 +654,20 @@ static void cmd_vfo_b(const char *buf, size_t len)
 
 static void cmd_o(char **argv, uint8_t argc)
 {
-	dprintf("\r\nShutting off ad9833\r\n");
+	dprintf(PSTR("\r\nShutting off ad9833\r\n"));
 	ad9833_shutdown();	
 
 }
 
 static void cmd_d(char **argv, uint8_t argc)
 {
-	dprintf("\r\nShutting off dds amp\r\n");
+	dprintf(PSTR("\r\nShutting off dds amp\r\n"));
 	dds_amp_off();
 }
 
 static void cmd_D(char **argv, uint8_t argc)
 {
-	dprintf("\r\nTurning on dds amp\r\n");
+	dprintf(PSTR("\r\nTurning on dds amp\r\n"));
 	dds_amp_on();
 }
 
@@ -688,7 +678,7 @@ static void cmd_chan(char **argv, uint8_t argc)
 	band = atous(argv[1]);
 	channel = atous(argv[2]);
 
-	dprintf("\r\nCMD_CHAN band: %u chan %u\r\n", band, channel);
+	dprintf(PSTR("\r\nCMD_CHAN band: %u chan %u\r\n"), band, channel);
 		
 
 }
@@ -698,7 +688,7 @@ static void cmd_reboot(char **argv, uint8_t argc)
         typedef void (*do_reboot_t)(void);
         const do_reboot_t do_reboot = (do_reboot_t)((FLASHEND - 511) >> 1);
         
-        dprintf("\r\n\r\nAttempting to reboot in 5 seconds\r\n");
+        dprintf(PSTR("\r\n\r\nAttempting to reboot in 5 seconds\r\n"));
         ad9833_shutdown();
         dds_amp_off();
         cli();
@@ -895,7 +885,11 @@ static void set_channel(uint16_t band, uint16_t channel)
 {
 	struct memory_entry m;
 	void *bptr;
+	struct memory_entry x;
 
+	eeprom_read_block(&x, &bands[band][channel], sizeof(x));
+	
+	dprintf(PSTR("bands[band]: %x\r\n"), &bands[band]);
 	switch(band)
 	{
 		case 1:
@@ -929,7 +923,8 @@ static void set_channel(uint16_t band, uint16_t channel)
 
 	}
 	eeprom_read_block(&m, bptr, sizeof(m));
-	dprintf("set_channel: band: %u channel: %u - %u %u - ctcss frequency: %u\r\n",  band, channel, m.freq_msb, m.freq_lsb, m.tone_mult);
+	dprintf(PSTR("set_channel: band: %u channel: %u - %u %u - ctcss frequency: %u\r\n"),  band, channel, m.freq_msb, m.freq_lsb, m.tone_mult);
+	dprintf(PSTR("XPTR-set_channel: band: %u channel: %u - %u %u - ctcss frequency: %u\r\n"),  band, channel, x.freq_msb, x.freq_lsb, x.tone_mult);
 	ad9833_setvfo(m.freq_msb, m.freq_lsb);
 	cur_mult = m.tone_mult;	
 }
@@ -946,19 +941,19 @@ static void read_channel(void *data)
 
 	if(lookup_channel(c, &new_channel) == false)
 	{
-		dprintf("ADC out of range for channel: %u\r\n", c);
+		dprintf(PSTR("ADC out of range for channel: %u\r\n"), c);
 //		return;
 	}
 
 	if(lookup_channel(b, &new_band) == false)
 	{
-		dprintf("ADC out of range for band: %u\r\n", b);
+		dprintf(PSTR("ADC out of range for band: %u\r\n"), b);
 //		return;
 	}
 
 	if((current_channel == new_channel) && (current_band == new_band))
 	{
-		dprintf("NO changes to make\r\n");
+		dprintf(PSTR("NO changes to make\r\n"));
 //		return;
 	}
 	current_band = new_band;
@@ -983,7 +978,7 @@ static uint16_t adc_avg(void);
 
 static void blink_cb(void *data)
 {
-	dprintf("\r\n* - FAKE BLINK\r\n");
+	dprintf(PSTR("\r\n* - FAKE BLINK\r\n"));
 	led_toggle();
 }
 
@@ -1007,7 +1002,7 @@ static void setup()
 	setup_linebuf();	
 	uart_init();
 
-	dprintf("\r\nFT-221 DDS/CTCSS encoder thingie\r\nHi N3RYB!\r\n");
+	dprintf(PSTR("\r\nFT-221 DDS/CTCSS encoder thingie\r\nHi N3RYB!\r\n"));
 	PLLFRQ = _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1) | _BV(PLLUSB); /* run at 96MHz */
 	PLLCSR = _BV(PINDIV) | _BV(PLLE);
 
@@ -1022,26 +1017,25 @@ static void setup()
 	PRR0 |= _BV(PRTWI); // turn off two wire
 	PRR0 |= _BV(PRUSB); // and usb too
 	
-
 	setup_pwm();
 	spi_init();
 
-	dprintf("Enabling interrupts;\r\n");
+	dprintf(PSTR("Enabling interrupts;\r\n"));
   	sei();
-  	dprintf("Enabled interrupts successfully\r\n");
+  	dprintf(PSTR("Enabled interrupts successfully\r\n"));
 
 
  	ad9833_init();
 
  	adc_init();
- 	dprintf("Out of adc_init()\r\n");
+ 	dprintf(PSTR("Out of adc_init()\r\n"));
  	
 	read_channel_ev = rb_event_add(read_channel, NULL, 5000, 0);
 	rb_event_add(process_uart, NULL, 50, 0);
 	rb_event_add(process_commands, NULL, 20, 0);
 	
 	event_blink(4);
-	dprintf("setup finished\r\n");	
+	dprintf(PSTR("setup finished\r\n"));	
 }
 
 
