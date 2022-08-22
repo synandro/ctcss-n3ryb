@@ -887,9 +887,9 @@ static void set_channel(uint16_t band, uint16_t channel)
 	void *bptr;
 	struct memory_entry x;
 
-	eeprom_read_block(&x, &bands[band][channel], sizeof(x));
+//	eeprom_read_block(&x, &bands[band][channel], sizeof(x));
 	
-	dprintf(PSTR("bands[band]: %x\r\n"), &bands[band]);
+//	dprintf(PSTR("bands[band]: %x\r\n"), &bands[band]);
 	switch(band)
 	{
 		case 1:
