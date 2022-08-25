@@ -18,13 +18,10 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
  *  USA
  */
-#define USE_PROGMEM  1 /* store the sine table in progmem */
 
 
 #include <avr/io.h>
-#ifdef USE_PROGMEM
 #include <avr/pgmspace.h>
-#endif
 #include <util/atomic.h>
 #include "pwm-sine.h"
 
@@ -32,15 +29,7 @@
 uint16_t cur_mult; /* multiplier for the sine table */
 uint16_t sin_counter;  /* and the counter for it too */
 
-
-#ifdef USE_PROGMEM 
-#define SINE_PGM PROGMEM
-#else
-#define SINE_PGM
-#endif
-
-
-static const uint8_t sine_wave[256] SINE_PGM = {
+static const uint8_t sine_wave[256] PROGMEM = {
 	0x80,0x83,0x86,0x89,0x8c,0x8f,0x92,0x95,
 	0x98,0x9c,0x9f,0xa2,0xa5,0xa8,0xab,0xae,
 	0xb0,0xb3,0xb6,0xb9,0xbc,0xbf,0xc1,0xc4,
@@ -96,9 +85,5 @@ void setup_pwm(void)
 
 ISR(TIMER0_COMPA_vect) 
 {
-#ifdef USE_PROGMEM	
 	OCR4D = pgm_read_byte(sine_wave[((sin_counter += cur_mult) >> 8)]);
-#else
-	OCR4D = sine_wave[((sin_counter += cur_mult) >> 8)];
-#endif
 }
