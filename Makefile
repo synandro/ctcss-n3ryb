@@ -21,7 +21,7 @@ EXTRA_FLAGS += -DRESET_ACTIVE
 endif
 # EXTRA_FLAGS += -DF_CPU=8000000L -DCLOCK_SOURCE=6 
 
-COMPILE    = avr-gcc -save-temps=obj -Wall -Wextra -Wno-unused-parameter -mmcu=$(DEVICE) -Os -fno-unroll-loops  -finline-functions   -fverbose-asm -std=gnu11 -DF_CPU=16000000L -DBAUD_TOL=3 -DBAUD=115200 -DREF_FREQ=25000000  # -flto
+COMPILE    = avr-gcc -save-temps=obj -Wall -Wextra -Wno-unused-parameter -mmcu=$(DEVICE) -Os -fno-unroll-loops  -finline-functions   -fverbose-asm -std=gnu11 -DF_CPU=16000000L -DBAUD_TOL=3 -DBAUD=115200 -DREF_FREQ=25000000 # -flto
 
 OBJS       = ctcss-n3ryb.o event.o tools.o pwm-sine.o
 OUTNAME    := $(notdir $(patsubst %/,%,$(dir $(realpath $(firstword $(MAKEFILE_LIST))))))
@@ -38,18 +38,21 @@ all-1: test-serial.hex
 
 #test-serial.hex: test-serial
 
+%.eep: %.elf
+	avr-objcopy -O ihex -j .eeprom --set-section-flags=.eeprom=alloc,load --no-change-warnings --change-section-lma .eeprom=0  $^ $(basename $@).eep
+	
 
 #install: $(OUTNAME).hex
 #	micronucleus $^
 
-install: $(OUTNAME).hex
+install: $(OUTNAME).hex $(OUTNAME).eep
 	pkill -TSTP minicom || true
-	avrdude -c arduino -p m32u4 -P /dev/ttyUSB2 -v -b 115200  -U flash:w:$^
-
+	avrdude -c arduino -p m32u4 -P /dev/ttyUSB1 -v -b 115200  -U flash:w:$^
+	#  -U eeprom:w:$(OUTNAME).eep
 
 
 install-avr: $(OUTNAME).hex
-	avrdude -p t85 -c usbtiny -v -U flash:w:$^
+	avrdude -p m32u4 -c usbtiny -v -U flash:w:$^
 
 install-micro: $(OUTNAME).hex
 	 avrdude -c avr109 -p m32u4 -P /dev/ttyACM0 -v -U flash:w:$^
