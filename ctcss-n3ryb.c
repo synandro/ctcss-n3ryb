@@ -1,11 +1,10 @@
 #define BAUD 115200
 #define BAUD_TOL 3
 
-// #define AD9833_FREQ 25000000
-
 #define CHAN_VFO 12
 #define CHAN_MAX 12
 #define BAND_MAX 8 
+#define ADC_MAX  1024 /* adc values above this are discarded as invalid */
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -21,12 +20,11 @@
 #include <util/setbaud.h>
 #include <stdio.h>
 
-#define DEBUG 1
-#ifdef DEBUG
+
 #define dprintf(...) printf_P(__VA_ARGS__)
-#else
-#define dprintf(...)
-#endif
+
+
+//#define eprintf(format, ...) fprintf (stderr, format, __VA_ARGS__)
 
 #include "tools.h"
 #include "ad9833.h"
@@ -36,7 +34,7 @@
 /* globals - we have globals.  it's embedded. whatever */
 
 buf_head_t uart_rx_buf;
-buf_head_t uart_tx_buf;
+//buf_head_t uart_tx_buf;
 
 uint16_t current_band;
 uint16_t current_channel;
@@ -416,8 +414,7 @@ void spi_init(void)
 	// PB1 = SCLK, PB2 = MOSI, PB3 = MISO
 	
 	DDRB |= _BV(PB1) | _BV(PB2);
-	PORTB &= ~_BV(PB1);
-	PORTB &= ~_BV(PB2);
+	PORTB &= ~(_BV(PB1) | _BV(PB2)) ;
 	SPCR  = _BV(SPE)| _BV(MSTR)| _BV(SPR0) | _BV(CPOL);
 }
 
@@ -595,11 +592,28 @@ static void cmd_tone(char **argv, uint8_t argc)
 
 static void adc_avg_channel(uint16_t *channel, uint16_t *band);
 
+static void cmd_adc_cb(void *data)
+{
+	uint16_t channel, band;
+	adc_avg_channel(&channel, &band);
+	dprintf(PSTR("ADC: %u %u\r\n"), channel, band);
+
+}
+
+static struct ev_entry *adc_ev; 
 static void cmd_adc(char **argv, uint8_t argc)
 {
 	uint16_t channel, band;
 	adc_avg_channel(&channel, &band);
-	dprintf(PSTR("\r\nCMD_ADC: %u %u\r\n"), channel, band);
+	
+	if(adc_ev == NULL)
+	{
+		dprintf(PSTR("\r\nCMD_ADC: starting ADC event\r\n"));
+		adc_ev = rb_event_add(cmd_adc_cb, NULL, 1000, 0);
+	} else {
+		rb_event_delete(adc_ev);
+		adc_ev = NULL;
+	}
 }
 
 static void cmd_adcoff(char **argv, uint8_t argc)
@@ -644,6 +658,43 @@ static void cmd_chan(char **argv, uint8_t argc)
 	set_channel(band, channel);
 }
 
+static void cmd_listadc(char **argv, uint8_t argc)
+{
+	uint16_t band, channel, range[2];
+	dprintf(PSTR("CMD_LISTADC\r\n"));
+
+//	static uint16_t band_switch_range[BAND_MAX][2] EEMEM  = {
+	for(band = 0; band < BAND_MAX; band++)
+	{
+		eeprom_read_block(&range, &band_switch_range[band], sizeof(range));
+		dprintf(PSTR("CMD_LISTADC: band = %u, .min = %u, .max = %u \r\n"), band, range[0], range[1]);
+	}
+	for(channel = 0; channel < CHAN_MAX; channel++)
+	{
+		eeprom_read_block(&range, &channel_switch_range[channel], sizeof(range));
+		dprintf(PSTR("CMD_LISTADC: channel = %u, .min = %u, .max = %u \r\n"), channel, range[0], range[1]);
+	}
+	
+
+}
+static void cmd_listchan(char **argv, uint8_t argc)
+{
+	uint16_t band, channel;
+	struct memory_entry m;
+	//struct memory_entry bands[BAND_MAX][CHAN_MAX - 1] EEMEM = {
+	dprintf(PSTR("CMD_LISTCHAN\r\n"));
+	for(band = 0; band < BAND_MAX; band++)
+	{
+		for(channel = 0; channel < CHAN_MAX; channel++)
+		{
+			eeprom_read_block(&m, &bands[band][channel], sizeof(m));
+			dprintf(PSTR("CMD_LISTCHAN: band = %u, channel = %u  .tone_mult =  %u,  .freq_msb = %u, .freq_lsb  %u\r\n"), band, channel, m.tone_mult, m.freq_msb, m.freq_lsb);
+		}
+	
+	}
+
+}
+
 static void cmd_savechan(char **argv, uint8_t argc)
 {
 	struct memory_entry m;
@@ -685,7 +736,7 @@ static void cmd_saveadc_c(char **argv, uint8_t argc)
 	uint8_t channel;
 	uint16_t range[2];
 	
-	if(argc != 3)
+	if(argc != 4)
 	{
 		dprintf(PSTR("\r\nSAVEADC_C channel start end\r\n"));
 		return;
@@ -714,7 +765,7 @@ static void cmd_saveadc_b(char **argv, uint8_t argc)
 	uint8_t band;
 	uint16_t range[2];
 
-	if(argc != 3)
+	if(argc != 4)
 	{
 		dprintf(PSTR("\r\nSAVEADC_B band start end\r\n"));
 		return;
@@ -776,7 +827,8 @@ static const struct command_struct commands[] = {
 	{ .cmd = "chan", .handler = cmd_chan },
 	{ .cmd = "savechan", .handler = cmd_savechan }, 
 	{ .cmd = "saveadc_b", .handler = cmd_saveadc_b },
-	{ .cmd = "saveadc_c", .handler = cmd_saveadc_c },
+	{ .cmd = "saveadc_c", .handler = cmd_saveadc_c }, 
+	{ .cmd = "listadc", .handler = cmd_listadc }, 
 	{ .cmd = "help", .handler = cmd_help },
 	{ .cmd = NULL, .handler = NULL }, 
 
@@ -904,7 +956,7 @@ static void adc_init(void)
 
 static uint16_t adc_avg(void)
 {
-	const uint8_t adc_samples = 16; /* keep this powers of 2 otherwise the division is no longer a bit shift */
+	const uint8_t adc_samples = 32; /* keep this powers of 2 otherwise the division is no longer a bit shift */
 	uint16_t adc_val = 0;
 	
 	for(uint8_t i = 0; i < adc_samples; i++)
@@ -930,12 +982,17 @@ static void adc_avg_channel(uint16_t *channel, uint16_t *band)
 	ADMUX = ADMUX_ADC12;
 	ADCSRB = ADCSRB_ADC12;
 	ADCSRA |= _BV(ADSC); 
-	_delay_ms(30);
+	_delay_us(15);
 	*band = adc_avg(); /* throw away the first sample */
 	*band = adc_avg();
 	*band = adc_avg(); /* throw away the first sample */
 	*band = adc_avg();
-	_delay_us(30);
+	_delay_us(15);
+
+	ADMUX = ADMUX_ADC11;
+	ADCSRB = ADCSRB_ADC11;
+	ADCSRA |= _BV(ADSC); 
+	
 }
 
 
@@ -947,6 +1004,9 @@ static bool lookup_channel(uint16_t adc_val, uint16_t *channel)
 	eeprom_read_block(&channel_range, &channel_switch_range, sizeof(channel_range));
 	for(i = 0; i < CHAN_MAX; i++)
 	{
+		if((channel_range[i][0] > ADC_MAX) || (channel_range[i][1] > ADC_MAX))
+			continue;
+		
 		if(adc_val >= channel_range[i][0] && adc_val <= channel_range[i][1])
 		{
 			*channel = i;
@@ -965,6 +1025,8 @@ static bool lookup_band(uint16_t adc_val, uint16_t *band)
 	eeprom_read_block(&band_range, &band_switch_range, sizeof(band_range));
 	for(i = 0; i < BAND_MAX; i++)
 	{
+		if((band_range[i][0] > ADC_MAX) || (band_range[i][1] > ADC_MAX))
+			continue;
 		if(adc_val >= band_range[i][0] && adc_val <= band_range[i][1])
 		{
 			*band = i;
@@ -1018,12 +1080,10 @@ static void read_channel(void *data)
 	adc_avg_channel(&c, &b);			
 //	dprintf("%lu: ADC average: channel: %u band: %u\r\n", tick, c, b);
 
-	new_band = 6;
-	new_channel = 5;
-
 	if(lookup_channel(c, &new_channel) == false)
 	{
 		dprintf(PSTR("ADC out of range for channel: %u\r\n"), c);
+		return;
 #if 0
 		ad9833_shutdown();
 		cur_mult = 0;
@@ -1034,13 +1094,13 @@ static void read_channel(void *data)
 	if(lookup_band(b, &new_band) == false)
 	{
 		dprintf(PSTR("ADC out of range for band: %u\r\n"), b);
-//		return;
+		return;
 	}
 
 	if((current_channel == new_channel) && (current_band == new_band))
 	{
 		dprintf(PSTR("NO changes to make\r\n"));
-//		return;
+		return;
 	}
 	current_band = new_band;
 	current_channel = new_channel;
@@ -1052,7 +1112,7 @@ static void read_channel(void *data)
 static void setup_linebuf(void)
 {
 	rb_linebuf_newbuf(&uart_rx_buf);
-	rb_linebuf_newbuf(&uart_tx_buf);
+//	rb_linebuf_newbuf(&uart_tx_buf);
 }
 
 
@@ -1117,7 +1177,7 @@ static void setup()
  	adc_init();
  	dprintf(PSTR("Out of adc_init()\r\n"));
  	
-	read_channel_ev = rb_event_add(read_channel, NULL, 5000, 0);
+//	read_channel_ev = rb_event_add(read_channel, NULL, 5000, 0);
 	rb_event_add(process_uart, NULL, 50, 0);
 	rb_event_add(process_commands, NULL, 20, 0);
 	
@@ -1131,6 +1191,10 @@ static void setup()
 int main(void)
 {
 	setup();
+	cmd_listchan(NULL, 0);
+	cmd_listadc(NULL, 0);
+	cmd_adc(NULL, 0);
+	dprintf(PSTR("starting event loop\r\n"));
 	while(1)
 	{
 		rb_event_run();
