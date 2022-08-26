@@ -521,8 +521,6 @@ static void ad9833_shutdown(void)
 	SPI_write16(AD9833_RESET);
 	ad9833_sselect_high();
 	
-	PORTF &= ~_BV(PF5); 
-
 	ad9833_off();
 	ad9833_sselect_low();
 	dds_power = 0;
@@ -1077,7 +1075,8 @@ static void set_channel(uint16_t band, uint16_t channel)
 {
 	struct memory_entry m;
 	
-	if(band > BAND_MAX - 1 || channel > CHAN_MAX - 1)
+	/* band is zero indexed, channel is indexed on 1, (zero being the vfo channel) */
+	if(band > BAND_MAX - 1 || channel > CHAN_MAX)
 	{
 		dprintf(PSTR("\r\nset_channel: band or channel out of range\r\n"));
 		return;
@@ -1089,6 +1088,14 @@ static void set_channel(uint16_t band, uint16_t channel)
 		dds_amp_off();
 		return;
 	}
+	if(m.freq_lsb == UINT16_MAX)
+		m.freq_lsb = 0;
+	
+	if(m.freq_msb == UINT16_MAX)
+		m.freq_msb = 0;
+	
+	if(m.tone_mult == UINT16_MAX)
+		m.tone_mult = 0;
 
 	eeprom_read_block(&m, &bands[band][channel], sizeof(m));
 	dprintf(PSTR("\r\nset_channel: band: %u channel: %u - %u %u - ctcss frequency: %u\r\n"),  band, channel, m.freq_msb, m.freq_lsb, m.tone_mult);
@@ -1098,7 +1105,7 @@ static void set_channel(uint16_t band, uint16_t channel)
 
 	cur_mult = m.tone_mult;	
 	
-	if(m.freq_msb == 65535 || m.freq_msb == 0 || m.freq_lsb == 65535 || m.freq_msb == 0)
+	if(m.freq_msb == 0 || m.freq_msb == 0)
 	{
 		dds_amp_off();
 		ad9833_shutdown();
@@ -1124,6 +1131,7 @@ static void read_channel(void *data)
 		dprintf(PSTR("read_channel: debounce, last change: %lu, now: %lu\r\n"), last_change, now);
 		return;
 	}
+	last_change = now;
 
 	if(lookup_channel(c, &new_channel) == false)
 	{
@@ -1141,9 +1149,11 @@ static void read_channel(void *data)
 
 	if((current_channel == new_channel) && (current_band == new_band))
 	{
-		dprintf(PSTR("read_channel: No changes to make: b:%u c:%u\r\n"), new_band, new_channel);
+//		dprintf(PSTR("read_channel: No changes to make: b:%u c:%u\r\n"), new_band, new_channel);
 		return;
 	}
+
+	last_change = now;
 	current_band = new_band;
 	current_channel = new_channel;
 	set_channel(new_band, new_channel);
