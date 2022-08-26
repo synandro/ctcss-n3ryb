@@ -1,7 +1,7 @@
 #define BAUD 115200
 #define BAUD_TOL 3
 
-#define CHAN_VFO 12
+#define CHAN_VFO 0
 #define CHAN_MAX 12
 #define BAND_MAX 8 
 #define ADC_MAX  1024 /* adc values above this are discarded as invalid */
@@ -141,18 +141,41 @@ struct memory_entry {
 
 */
 
-struct memory_entry bands[BAND_MAX][CHAN_MAX - 1] EEMEM = {
+struct memory_entry bands[BAND_MAX][CHAN_MAX] EEMEM = {
 	
 	{
 		/* band 0 - 144-144.49 */
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
 		{ .tone_mult = 0, .freq_msb = 5373, .freq_lsb = 15597 }, /* 144.200 */
 		{ .tone_mult = 0, .freq_msb = 5498, .freq_lsb = 7707 }, /* 144.390 */
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
 	},	
 	{
 		/* band 1 - 144.5 - 145.0 */
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
 	},	
 	{
 		/* band 2 - 145.0 - 145.49 */ 	
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
 		{ .tone_mult = MULT_107_2, .freq_msb = 5328, .freq_lsb = 1258 }, /* 145.13000 Haymarket  N3KL */
 		{ .tone_mult = MULT_179_9, .freq_msb = 5341, .freq_lsb = 3014 }, /* 145.15000 Martinsburg  W8ORS */
 		{ .tone_mult = MULT_118_8, .freq_msb = 5367, .freq_lsb = 6527 }, /* 145.19000 Moorefield  N8VAA */
@@ -161,21 +184,48 @@ struct memory_entry bands[BAND_MAX][CHAN_MAX - 1] EEMEM = {
 		{ .tone_mult = MULT_146_2, .freq_msb = 5498, .freq_lsb = 7707 }, /* 145.39000 Winchester North Mountain KG4Y */
 		{ .tone_mult = MULT_123_0, .freq_msb = 5537, .freq_lsb = 12976 }, /* 145.45000 Oldtown Warrior Mountain WMA W3YMW */
 		{ .tone_mult = MULT_123_0, .freq_msb = 5564, .freq_lsb = 104 }, /* 145.49000 Bedford  K3NQT */
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
 	},
 	{	
 		/* band 3 - 145.5 - 145.99 */
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
 	},
 	{	
 		/* band 4 - 146.0 - 146.6 */
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+
 		{ .tone_mult = 0, .freq_msb = 5583, .freq_lsb = 10931 }, /* 146.520 */
 		{ .tone_mult = 0, .freq_msb = 5596, .freq_lsb = 12687 }, /* 146.540 */
 		{ .tone_mult = 0, .freq_msb = 5609, .freq_lsb = 14444 }, /* 146.560 */
 		{ .tone_mult = 0, .freq_msb = 5622, .freq_lsb = 16200 }, /* 146.580 */
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+
 		
 	},
 
 	{
 		/* band 5 - 146.5 - 146.99 */
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+
 		{ .tone_mult = MULT_131_8, .freq_msb = 5324, .freq_lsb = 13107 }, /* 146.62500 New Market Luray Caverns N4YSA */
 		{ .tone_mult = MULT_123_0, .freq_msb = 5403, .freq_lsb = 7261 }, /* 146.74500 Berkeley Springs Cacapon Mountain KK3L */
 		{ .tone_mult = MULT_123_0, .freq_msb = 5432, .freq_lsb = 15309 }, /* 146.79000 Clearville Martin Hill K3NQT */
@@ -184,9 +234,13 @@ struct memory_entry bands[BAND_MAX][CHAN_MAX - 1] EEMEM = {
 		{ .tone_mult = MULT_77_0, .freq_msb = 5472, .freq_lsb = 4194 }, /* 146.85000 Charles Town  WA4TXE */
 		{ .tone_mult = MULT_123_0, .freq_msb = 5491, .freq_lsb = 15020 }, /* 146.88000 Midland Dan's Mountain W3YMW */
 		{ .tone_mult = MULT_100_0, .freq_msb = 5531, .freq_lsb = 3905 }, /* 146.94000 Clear Spring Fairview Mountain W3CWC */
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
 	},
 	{
-		/* band 6 */
+		/* band 6 - 147.00 - 147.5*/
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
 		{ .tone_mult = MULT_100_0, .freq_msb = 5321, .freq_lsb = 8572 }, /* 147.12000 Chambersburg Clark's Knob W3ACH */
 		{ .tone_mult = MULT_167_9, .freq_msb = 5341, .freq_lsb = 3014 }, /* 147.15000 Blue Knob Ski Resort KB3KWD */
 		{ .tone_mult = MULT_167_9, .freq_msb = 5351, .freq_lsb = 235 }, /* 147.16500 Warrenton  W4VA */
@@ -197,66 +251,50 @@ struct memory_entry bands[BAND_MAX][CHAN_MAX - 1] EEMEM = {
 		{ .tone_mult = MULT_131_8, .freq_msb = 5449, .freq_lsb = 5216 }, /* 147.31500 Basye Great North Mountain K4MRA */
 		{ .tone_mult = MULT_123_0, .freq_msb = 5468, .freq_lsb = 16043 }, /* 147.34500 Clear Spring  K3MAD */
 		{ .tone_mult = MULT_127_3, .freq_msb = 5478, .freq_lsb = 13264 }, /* 147.36000 Skyline  K7SOB */
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+
 	}, 
-	{} 	/* band 7 */
+	{
+		/* band 7 - 147.5 - 148 */
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+		{ .tone_mult = 0, .freq_msb = 0, .freq_lsb = 0 },
+	}
 };
 
 
 
 
-/*
-91k  - 990 5V     1
-100k - 960 - 4.8  2
-120k - 896 - 4.45 3
-180k - 768 - 3.66 4
-300k - 543 - 2.65 5
-360k - 496 - 2.35 6
-430k - 448 - 2.08 7
-470k - 414 - 1.94 8
-510k - 385 - 1.81 9
-680k - 319 - 1.46 10
-820k - 255 - 1.23 11
-1.5m - 191 - 0.754 12
-*/
 
-
-#if 0
-// adc values for the band/channel switch, indexed by 1, assume a +30/-30 on these
-static const uint16_t channel_switch[] = {
-	0, 990, 960, 896, 768, 543, 496, 448, 414, 385, 319, 225, 191
-};
-#endif
 
 /* min/max range for each band switch */
 static uint16_t band_switch_range[BAND_MAX][2] EEMEM  = {
-	{ 1024,990 }, 
-	{ 980,950 },
-	{ 900,850 },
-	{ 800,700 },
-	{ 600,520 }, 
-	{ 510,480 },
-	{ 470,430 }, 
-	{ 420,400 }, 
-//	{ 390,350 },
-//	{ 330,280 },
-//	{ 240,210 },
-//	{ 200,150 },
-};
 
+};
+	
 /* min/max range for each band switch */
 static uint16_t channel_switch_range[CHAN_MAX][2] EEMEM = {
-	{ 1024,990 }, 
-	{ 980,950 },
-	{ 900,850 },
-	{ 800,700 },
-	{ 600,520 }, 
-	{ 510,480 },
-	{ 470,430 }, 
-	{ 420,400 }, 
-	{ 390,350 },
-	{ 330,280 },
-	{ 240,210 },
-	{ 200,150 },
+	{ 0, 0 },
+	{ 8, 15 },
+	{ 140, 160 },
+	{ 120, 131 },
+	{ 170, 190 },
+	{ 200, 215 },
+	{ 245, 260 },
+	{ 280, 300 },
+	{ 325, 345 },
+	{ 840, 890 },
+	{ 359, 375 },
+	{ 670, 700 }
 };
 
 
@@ -488,7 +526,6 @@ static void ad9833_shutdown(void)
 	ad9833_off();
 	ad9833_sselect_low();
 	dds_power = 0;
-	SPCR = 0;
 }
 
 
@@ -596,7 +633,7 @@ static void cmd_adc_cb(void *data)
 {
 	uint16_t channel, band;
 	adc_avg_channel(&channel, &band);
-	dprintf(PSTR("ADC: %u %u\r\n"), channel, band);
+	dprintf(PSTR("\rADC: channel:%u band:%u"), channel, band);
 
 }
 
@@ -608,7 +645,7 @@ static void cmd_adc(char **argv, uint8_t argc)
 	
 	if(adc_ev == NULL)
 	{
-		dprintf(PSTR("\r\nCMD_ADC: starting ADC event\r\n"));
+		dprintf(PSTR("\rCMD_ADC: starting ADC event"));
 		adc_ev = rb_event_add(cmd_adc_cb, NULL, 1000, 0);
 	} else {
 		rb_event_delete(adc_ev);
@@ -625,7 +662,7 @@ static void cmd_adcoff(char **argv, uint8_t argc)
 static void cmd_adcon(char **argv, uint8_t argc)
 {
 	dprintf(PSTR("\r\nADC ON\r\n"));
-	read_channel_ev = rb_event_add(read_channel, NULL, 5000, 0);
+	read_channel_ev = rb_event_add(read_channel, NULL, 1500, 0);
 }
 
 
@@ -663,7 +700,6 @@ static void cmd_listadc(char **argv, uint8_t argc)
 	uint16_t band, channel, range[2];
 	dprintf(PSTR("CMD_LISTADC\r\n"));
 
-//	static uint16_t band_switch_range[BAND_MAX][2] EEMEM  = {
 	for(band = 0; band < BAND_MAX; band++)
 	{
 		eeprom_read_block(&range, &band_switch_range[band], sizeof(range));
@@ -829,6 +865,7 @@ static const struct command_struct commands[] = {
 	{ .cmd = "saveadc_b", .handler = cmd_saveadc_b },
 	{ .cmd = "saveadc_c", .handler = cmd_saveadc_c }, 
 	{ .cmd = "listadc", .handler = cmd_listadc }, 
+	{ .cmd = "listchan", .handler = cmd_listchan }, 
 	{ .cmd = "help", .handler = cmd_help },
 	{ .cmd = NULL, .handler = NULL }, 
 
@@ -938,29 +975,29 @@ static void process_uart(void *unused)
 static void adc_init(void)
 {
 	ADCSRA = 0;
-
+	
 	DDRB &= ~(_BV(PB4) | _BV(PB5)); 
-	PORTB &= ~(_BV(PB4) | _BV(PB5));	
+	PORTB &= ~(_BV(PB4) | _BV(PB5));
 	DIDR2 |= _BV(ADC11D) | _BV(ADC12D);
 
 
 	ADMUX = ADMUX_ADC11;
-	ADCSRB = ADCSRB_ADC11;
-	
+	ADCSRB = ADCSRB_ADC11;	
 
-	ADCSRA = _BV(ADEN);
-	 
-	ADCSRA |= _BV(ADSC) | _BV(ADATE) | _BV(ADEN);
+//	ADCSRA = _BV(ADEN);
+	ADCSRA = _BV(ADEN) | _BV(ADSC) | _BV(ADPS0) | _BV(ADPS1) | _BV(ADPS2);
+	_delay_us(125);
 
 }
 
 static uint16_t adc_avg(void)
 {
-	const uint8_t adc_samples = 32; /* keep this powers of 2 otherwise the division is no longer a bit shift */
+	const uint8_t adc_samples = 16; /* keep this powers of 2 otherwise the division is no longer a bit shift */
 	uint16_t adc_val = 0;
 	
 	for(uint8_t i = 0; i < adc_samples; i++)
 	{
+		ADCSRA |= _BV(ADSC);
 		while(!bit_is_set(ADCSRA,ADSC));
 		adc_val += ADCW;
 	}
@@ -970,30 +1007,28 @@ static uint16_t adc_avg(void)
 
 static void adc_avg_channel(uint16_t *channel, uint16_t *band)
 {
-
 	ADMUX = ADMUX_ADC11;
 	ADCSRB = ADCSRB_ADC11;
 
-	*channel = adc_avg();
-	*channel = adc_avg();
-	*channel = adc_avg();
-	*channel = adc_avg();
+	_delay_us(250);
+
+	*band = adc_avg();
+	*band = adc_avg();
+	*band = adc_avg();
 
 	ADMUX = ADMUX_ADC12;
 	ADCSRB = ADCSRB_ADC12;
-	ADCSRA |= _BV(ADSC); 
-	_delay_us(15);
-	*band = adc_avg(); /* throw away the first sample */
-	*band = adc_avg();
-	*band = adc_avg(); /* throw away the first sample */
-	*band = adc_avg();
-	_delay_us(15);
+	ADCSRA |= _BV(ADSC) | _BV(ADEN);
 
+	_delay_us(250);
+
+	*channel = adc_avg();
+	*channel = adc_avg();
+	*channel = adc_avg();
 	ADMUX = ADMUX_ADC11;
 	ADCSRB = ADCSRB_ADC11;
-	ADCSRA |= _BV(ADSC); 
-	
 }
+
 
 
 static bool lookup_channel(uint16_t adc_val, uint16_t *channel)
@@ -1019,7 +1054,7 @@ static bool lookup_channel(uint16_t adc_val, uint16_t *channel)
 
 static bool lookup_band(uint16_t adc_val, uint16_t *band)
 {
-	uint16_t band_range[8][2];
+	uint16_t band_range[BAND_MAX][2];
 	uint8_t i;
 	
 	eeprom_read_block(&band_range, &band_switch_range, sizeof(band_range));
@@ -1075,37 +1110,43 @@ static void set_channel(uint16_t band, uint16_t channel)
 
 static void read_channel(void *data)
 {
+	static uint32_t last_change;
+	uint32_t now;	
 	uint16_t c, b;
 	uint16_t new_channel = 0, new_band = 0;
 	adc_avg_channel(&c, &b);			
-//	dprintf("%lu: ADC average: channel: %u band: %u\r\n", tick, c, b);
+
+	dprintf(PSTR("read_channel: %lu: ADC average: channel: %u band: %u\r\n"), tick, c, b);
+
+	now = current_ts();
+	if(last_change + 5000 < now)
+	{
+		dprintf(PSTR("read_channel: debounce, last change: %lu, now: %lu\r\n"), last_change, now);
+		return;
+	}
 
 	if(lookup_channel(c, &new_channel) == false)
 	{
-		dprintf(PSTR("ADC out of range for channel: %u\r\n"), c);
-		return;
-#if 0
+		dprintf(PSTR("read_channel: ADC out of range for channel: value: %u\r\n"), c);
 		ad9833_shutdown();
 		cur_mult = 0;
 		return;
-#endif
 	}
 
 	if(lookup_band(b, &new_band) == false)
 	{
-		dprintf(PSTR("ADC out of range for band: %u\r\n"), b);
+		dprintf(PSTR("read_channel: ADC out of range for band: value: %u\r\n"), b);
 		return;
 	}
 
 	if((current_channel == new_channel) && (current_band == new_band))
 	{
-		dprintf(PSTR("NO changes to make\r\n"));
+		dprintf(PSTR("read_channel: No changes to make: b:%u c:%u\r\n"), new_band, new_channel);
 		return;
 	}
 	current_band = new_band;
 	current_channel = new_channel;
 	set_channel(new_band, new_channel);
-
 }
 
 
@@ -1138,7 +1179,8 @@ static void event_blink(uint8_t count)
 
 static void setup() 
 {
-	MCUSR = ~(1 << WDRF);
+	MCUSR |= ~(1 << WDRF);
+	MCUCR |= _BV(PUD);
 	wdt_disable();
 
 	led_on();
@@ -1162,7 +1204,7 @@ static void setup()
 
 
 	PRR0 |= _BV(PRTWI); // turn off two wire
-	PRR0 |= _BV(PRUSB); // and usb too
+	PRR1 |= _BV(PRUSB); // and usb too
 	
 	setup_pwm();
 	spi_init();
@@ -1177,7 +1219,7 @@ static void setup()
  	adc_init();
  	dprintf(PSTR("Out of adc_init()\r\n"));
  	
-//	read_channel_ev = rb_event_add(read_channel, NULL, 5000, 0);
+	read_channel_ev = rb_event_add(read_channel, NULL, 200, 0);
 	rb_event_add(process_uart, NULL, 50, 0);
 	rb_event_add(process_commands, NULL, 20, 0);
 	
@@ -1191,9 +1233,9 @@ static void setup()
 int main(void)
 {
 	setup();
-	cmd_listchan(NULL, 0);
-	cmd_listadc(NULL, 0);
-	cmd_adc(NULL, 0);
+//	cmd_listchan(NULL, 0);
+//	cmd_listadc(NULL, 0);
+//	cmd_adcon(NULL, 0);
 	dprintf(PSTR("starting event loop\r\n"));
 	while(1)
 	{
