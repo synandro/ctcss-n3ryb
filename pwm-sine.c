@@ -26,7 +26,7 @@
 #include "pwm-sine.h"
 
 
-uint16_t cur_mult; /* multiplier for the sine table */
+uint16_t cur_mult; /* frequency for the sine wave generator.  Value is Hz * 8 */
 uint16_t sin_counter;  /* and the counter for it too */
 
 
