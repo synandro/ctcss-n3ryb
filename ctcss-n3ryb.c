@@ -1,5 +1,3 @@
-#define BAUD 115200
-#define BAUD_TOL 3
 
 #define CHAN_VFO 0
 #define CHAN_MAX 12
@@ -21,10 +19,18 @@
 #include <stdio.h>
 
 
+#if 0
+
+#include <avr/avr_mcu_section.h>
+
+const struct avr_mmcu_vcd_trace_t _mytrace[]  _MMCU_ = {
+    { AVR_MCU_VCD_SYMBOL("PC6"),    .mask = (1<<PC6),    .what = (void*)&PORTC,  },
+};
+#endif
+
 #define dprintf(...) printf_P(__VA_ARGS__)
 
 
-//#define eprintf(format, ...) fprintf (stderr, format, __VA_ARGS__)
 
 #include "tools.h"
 #include "ad9833.h"
@@ -34,7 +40,7 @@
 /* globals - we have globals.  it's embedded. whatever */
 
 buf_head_t uart_rx_buf;
-//buf_head_t uart_tx_buf;
+/* buf_head_t uart_tx_buf; */
 
 uint16_t current_band;
 uint16_t current_channel;
@@ -277,8 +283,16 @@ struct memory_entry bands[BAND_MAX][CHAN_MAX] EEMEM = {
 
 
 /* min/max range for each band switch */
+/* yes, they are out of order on purpose. i wired them wrong!  */
 static uint16_t band_switch_range[BAND_MAX][2] EEMEM  = {
-
+	{ 260, 280 },
+	{ 200, 230 },
+	{ 340, 355 },
+	{ 300, 320 },
+	{ 415, 430 },
+	{ 520, 540 },
+	{ 680, 700 },
+	{ 598, 620 }
 };
 	
 /* min/max range for each band switch */
@@ -352,7 +366,6 @@ static inline  __attribute__((always_inline)) void led_on(void)
 static inline __attribute__((always_inline)) void led_toggle(void)
 {
 	PORTD ^= _BV(PD1) | _BV(PD5); 
-//	PORTD ^= _BV(PD5);
 }
 
 
@@ -449,7 +462,7 @@ static void SPI_write16 (const uint16_t data)
 
 void spi_init(void)
 {
-	// PB1 = SCLK, PB2 = MOSI, PB3 = MISO
+	/*  PB1 = SCLK, PB2 = MOSI, PB3 = MISO */
 	
 	DDRB |= _BV(PB1) | _BV(PB2);
 	PORTB &= ~(_BV(PB1) | _BV(PB2)) ;
@@ -498,19 +511,21 @@ static void ad9833_on(void)
 
 static void ad9833_init(void)
 {
-	dds_amp_on();
 	spi_init();
 
-	DDRF |= _BV(PF7); // slave select
+	DDRF |= _BV(PF7); /* slave select */
 	ad9833_sselect_high();
 
 	ad9833_on();
 
+	wdt_reset();
 	_delay_ms(10);
 
 	ad9833_sselect_low();
 	SPI_write16(AD9833_RESET);
 	ad9833_sselect_high();
+	dds_amp_on();
+
 }
 
 
@@ -532,7 +547,6 @@ static void ad9833_setvfo(uint16_t freq_msb, uint16_t freq_lsb)
 	if(dds_power == false)
 		ad9833_init();
 
-	dds_amp_on();
 	ad9833_sselect_low();
 
 	SPI_write16(AD9833_B28);
@@ -540,6 +554,8 @@ static void ad9833_setvfo(uint16_t freq_msb, uint16_t freq_lsb)
 	SPI_write16(freq_msb | AD9833_D14);
 	SPI_write16(AD9833_B28);
 	ad9833_sselect_high();
+	dds_amp_on();
+
 }
 
 
@@ -618,11 +634,15 @@ static void cmd_f(char **argv, uint8_t argc)
 
 static void cmd_tone(char **argv, uint8_t argc)
 {
-	if(argc != 1)
+	if(argc != 2)
+	{
+		dprintf(PSTR("\r\ncmd_tone: Not enough arguments:  TONE frequency\r\n"));
 		return;
+	}
+	
 		
 	set_ctcss(atoul(argv[1]));
-	dprintf(PSTR("\r\nF: Set frequency to (%u / 8)Hz \r\n"), cur_mult);
+	dprintf(PSTR("\r\ncmd_tone: Set frequency to (%u / 8)Hz \r\n"), cur_mult);
 }
 
 static void adc_avg_channel(uint16_t *channel, uint16_t *band);
@@ -700,11 +720,13 @@ static void cmd_listadc(char **argv, uint8_t argc)
 
 	for(band = 0; band < BAND_MAX; band++)
 	{
+		wdt_reset();
 		eeprom_read_block(&range, &band_switch_range[band], sizeof(range));
 		dprintf(PSTR("CMD_LISTADC: band = %u, .min = %u, .max = %u \r\n"), band, range[0], range[1]);
 	}
 	for(channel = 0; channel < CHAN_MAX; channel++)
 	{
+		wdt_reset();
 		eeprom_read_block(&range, &channel_switch_range[channel], sizeof(range));
 		dprintf(PSTR("CMD_LISTADC: channel = %u, .min = %u, .max = %u \r\n"), channel, range[0], range[1]);
 	}
@@ -715,12 +737,13 @@ static void cmd_listchan(char **argv, uint8_t argc)
 {
 	uint16_t band, channel;
 	struct memory_entry m;
-	//struct memory_entry bands[BAND_MAX][CHAN_MAX - 1] EEMEM = {
+
 	dprintf(PSTR("CMD_LISTCHAN\r\n"));
 	for(band = 0; band < BAND_MAX; band++)
 	{
 		for(channel = 0; channel < CHAN_MAX; channel++)
 		{
+			wdt_reset();
 			eeprom_read_block(&m, &bands[band][channel], sizeof(m));
 			dprintf(PSTR("CMD_LISTCHAN: band = %u, channel = %u  .tone_mult =  %u,  .freq_msb = %u, .freq_lsb  %u\r\n"), band, channel, m.tone_mult, m.freq_msb, m.freq_lsb);
 		}
@@ -830,10 +853,9 @@ static void cmd_reboot(char **argv, uint8_t argc)
         
         dprintf(PSTR("\r\n\r\nAttempting to reboot in 5 seconds\r\n"));
         ad9833_shutdown();
-        dds_amp_off();
         cli();
 	MCUSR = 0; 
-        TCCR0A = TCCR4A = 0; // make sure interrupts are off and timers are reset.
+        TCCR0A = TCCR4A = 0; 
         _delay_ms(5000);
         do_reboot();
 }
@@ -961,7 +983,7 @@ static void process_uart(void *unused)
 
  */
 
-//#define ADMUX_ADC11  = _BV(MUX0) | _BV(MUX1) |_BV(REFS0);
+// #define ADMUX_ADC11  = _BV(MUX0) | _BV(MUX1) |_BV(REFS0);
 
 #define ADMUX_ADC11 (_BV(MUX0) | _BV(MUX1) |_BV(REFS0))
 #define ADCSRB_ADC11 _BV(MUX5)
@@ -1007,9 +1029,9 @@ static void adc_avg_channel(uint16_t *channel, uint16_t *band)
 {
 	ADMUX = ADMUX_ADC11;
 	ADCSRB = ADCSRB_ADC11;
-
+	
 	_delay_us(250);
-
+	wdt_reset();	
 	*band = adc_avg();
 	*band = adc_avg();
 	*band = adc_avg();
@@ -1019,7 +1041,7 @@ static void adc_avg_channel(uint16_t *channel, uint16_t *band)
 	ADCSRA |= _BV(ADSC) | _BV(ADEN);
 
 	_delay_us(250);
-
+	wdt_reset();
 	*channel = adc_avg();
 	*channel = adc_avg();
 	*channel = adc_avg();
@@ -1085,9 +1107,12 @@ static void set_channel(uint16_t band, uint16_t channel)
 	if(channel == CHAN_VFO)
 	{
 		dprintf(PSTR("set_channel: vfo selected, turning DDS amp off\r\n"));
-		dds_amp_off();
+		ad9833_shutdown();
 		return;
 	}
+
+	eeprom_read_block(&m, &bands[band][channel], sizeof(m));
+
 	if(m.freq_lsb == UINT16_MAX)
 		m.freq_lsb = 0;
 	
@@ -1097,17 +1122,13 @@ static void set_channel(uint16_t band, uint16_t channel)
 	if(m.tone_mult == UINT16_MAX)
 		m.tone_mult = 0;
 
-	eeprom_read_block(&m, &bands[band][channel], sizeof(m));
 	dprintf(PSTR("\r\nset_channel: band: %u channel: %u - %u %u - ctcss frequency: %u\r\n"),  band, channel, m.freq_msb, m.freq_lsb, m.tone_mult);
-
-	if(m.tone_mult == 65535)
-		m.tone_mult = 0;
 
 	cur_mult = m.tone_mult;	
 	
-	if(m.freq_msb == 0 || m.freq_msb == 0)
+	if(m.freq_msb == 0 && m.freq_lsb == 0)
 	{
-		dds_amp_off();
+		dprintf(PSTR("set_channel: frequency is zero, turning DDS off\r\n"));
 		ad9833_shutdown();
 		return;
 	} 
@@ -1117,43 +1138,53 @@ static void set_channel(uint16_t band, uint16_t channel)
 
 static void read_channel(void *data)
 {
-	static uint32_t last_change;
+	static uint32_t last_change = 0;
+//	static uint16_t last_channel = 0, last_band = 0;
 	uint32_t now;	
 	uint16_t c, b;
 	uint16_t new_channel = 0, new_band = 0;
+
 	adc_avg_channel(&c, &b);			
-
-	dprintf(PSTR("read_channel: %lu: ADC average: channel: %u band: %u\r\n"), tick, c, b);
-
 	now = current_ts();
-	if(last_change + 5000 < now)
-	{
-		dprintf(PSTR("read_channel: debounce, last change: %lu, now: %lu\r\n"), last_change, now);
+//	dprintf(PSTR("read_channel: %lu: ADC average: channel: %u band: %u\r\n"), now, c, b);
+	if((last_change != 0) && (last_change + 2000 > now))
 		return;
-	}
-	last_change = now;
+	else
+		last_change = 0;
 
 	if(lookup_channel(c, &new_channel) == false)
 	{
 		dprintf(PSTR("read_channel: ADC out of range for channel: value: %u\r\n"), c);
-		ad9833_shutdown();
+		return;
+/*
+		last_change = now;
 		cur_mult = 0;
+		current_channel = 0;
+		ad9833_shutdown();
+*/
 		return;
 	}
 
 	if(lookup_band(b, &new_band) == false)
 	{
 		dprintf(PSTR("read_channel: ADC out of range for band: value: %u\r\n"), b);
+/*		last_change = now;
+		cur_mult = 0;
+		ad9833_shutdown();
+*/
 		return;
 	}
+
 
 	if((current_channel == new_channel) && (current_band == new_band))
 	{
 //		dprintf(PSTR("read_channel: No changes to make: b:%u c:%u\r\n"), new_band, new_channel);
 		return;
 	}
+//	last_channel = current_channel;
+//	last_band = current_band;
+//	last_change = now;
 
-	last_change = now;
 	current_band = new_band;
 	current_channel = new_channel;
 	set_channel(new_band, new_channel);
@@ -1181,17 +1212,18 @@ static void blink1_cb(void *data)
 	led_toggle();
 }
 
-static void event_blink(uint8_t count)
-{
-	rb_event_add(blink_cb, NULL, 250, count);
-}
-
-
 static void setup() 
 {
 	MCUSR |= ~(1 << WDRF);
 	MCUCR |= _BV(PUD);
-	wdt_disable();
+
+
+	wdt_reset();
+	DDRC |= _BV(PC7);
+	PORTC |= _BV(PC7);
+	
+	WDTCSR |= _BV(WDE) | _BV(WDCE); 
+	wdt_enable(WDTO_2S);
 
 	led_on();
 	
@@ -1202,26 +1234,23 @@ static void setup()
 	uart_init();
 
 	dprintf(PSTR("\r\nFT-221 DDS/CTCSS encoder thing\r\n(C) 2022 Aaron Sethman / N3RYB <androsyn@ratbox.org>\r\n"));
-	PLLFRQ = _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1) | _BV(PLLUSB); /* run at 96MHz */
 	PLLCSR = _BV(PINDIV) | _BV(PLLE);
+	PLLFRQ = _BV(PLLTM1) | _BV(PDIV3) | _BV(PDIV1); /* run at 96MHz  - see datasheet section 6.11.5 */
 
 	/* shut off the USB controller before we enable interrupts again - we'll go splat otherwise */
 	USBCON = 0;
 
 	while((PLLCSR & _BV(PLOCK)) == 0)
 
-	DDRD |= _BV(PD1);
-
-
-	PRR0 |= _BV(PRTWI); // turn off two wire
-	PRR1 |= _BV(PRUSB); // and usb too
+	PRR0 |= _BV(PRTWI); /* turn off two wire */
+	PRR1 |= _BV(PRUSB); /* and usb too */
 	
-	setup_pwm();
 	spi_init();
 
 	dprintf(PSTR("Enabling interrupts;\r\n"));
   	sei();
   	dprintf(PSTR("Enabled interrupts successfully\r\n"));
+	setup_pwm();
 
 
  	ad9833_init();
@@ -1229,12 +1258,10 @@ static void setup()
  	adc_init();
  	dprintf(PSTR("Out of adc_init()\r\n"));
  	
-	read_channel_ev = rb_event_add(read_channel, NULL, 200, 0);
+//	read_channel_ev = rb_event_add(read_channel, NULL, 200, 0);
 	rb_event_add(process_uart, NULL, 50, 0);
 	rb_event_add(process_commands, NULL, 20, 0);
-	
-	event_blink(4);
-
+	rb_event_add(blink_cb, NULL, 250, 4);
 	rb_event_add(blink1_cb, NULL, 2000, 0);
 
 	dprintf(PSTR("setup finished\r\n"));	
@@ -1246,9 +1273,11 @@ int main(void)
 //	cmd_listchan(NULL, 0);
 //	cmd_listadc(NULL, 0);
 //	cmd_adcon(NULL, 0);
+	cur_mult = 984;
 	dprintf(PSTR("starting event loop\r\n"));
 	while(1)
 	{
 		rb_event_run();
+		wdt_reset();
 	}
 }

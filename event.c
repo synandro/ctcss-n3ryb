@@ -134,11 +134,7 @@ void rb_event_run(void)
 	struct ev_entry *ev;
 	int32_t now;
 
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-	{
-		now = tick;
-	}
-
+	now = current_ts();
 	/* reset the counter before it gets anywhere near close to overflow */	
 	if(now > (INT32_MAX / 2)) 
 	{

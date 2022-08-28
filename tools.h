@@ -30,9 +30,9 @@
 
 
 
-
-#define BUF_DATA_SIZE 56
-#define LINEBUF_MAXLINES 3
+/* static memory allocations for linebufs.  reduce these if you want to reduce SRAM memory footprint */
+#define BUF_DATA_SIZE 64
+#define LINEBUF_MAXLINES 8
 
 
 #define RB_DLINK_FOREACH(pos, head) for (pos = (head); pos != NULL; pos = pos->next)
