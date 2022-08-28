@@ -21,7 +21,7 @@ EXTRA_FLAGS += -DRESET_ACTIVE
 endif
 # EXTRA_FLAGS += -DF_CPU=8000000L -DCLOCK_SOURCE=6 
 
-COMPILE    = avr-gcc -save-temps=obj -Wall -Wextra -Wno-unused-parameter -mmcu=$(DEVICE) -Os -fno-unroll-loops  -finline-functions   -fverbose-asm -std=gnu11 -DF_CPU=16000000L -DBAUD_TOL=3 -DBAUD=115200 -DREF_FREQ=25000000 # -flto
+COMPILE    = avr-gcc -I/home/n3ryb/dds/simavr/simavr/sim/ -save-temps=obj -Wall -Wextra -Wno-unused-parameter -mmcu=$(DEVICE) -Os -fno-unroll-loops  -finline-functions   -fverbose-asm -std=gnu11 -DF_CPU=16000000L -DBAUD_TOL=2 -DBAUD=38400 -DREF_FREQ=25000000 # -flto
 
 OBJS       = ctcss-n3ryb.o event.o tools.o pwm-sine.o
 OUTNAME    := $(notdir $(patsubst %/,%,$(dir $(realpath $(firstword $(MAKEFILE_LIST))))))
@@ -50,9 +50,12 @@ install: $(OUTNAME).hex $(OUTNAME).eep
 	avrdude -c arduino -p m32u4 -P /dev/ttyUSB1 -v -b 115200  -U flash:w:$^
 	#  -U eeprom:w:$(OUTNAME).eep
 
+install-eeprom: $(OUTNAME).eep
+	avrdude -p m32u4 -c usbtiny -v -U  eeprom:w:$^  -U flash:w:$(OUTNAME).hex
 
 install-avr: $(OUTNAME).hex
 	avrdude -p m32u4 -c usbtiny -v -U flash:w:$^
+
 
 install-micro: $(OUTNAME).hex
 	 avrdude -c avr109 -p m32u4 -P /dev/ttyACM0 -v -U flash:w:$^

@@ -86,6 +86,7 @@ bool downconvert(double freq, double *outfreq, const char **bandsw, double *vfo)
 void calculate_ad9833(double frequency, uint16_t *freq_MSB, uint16_t *freq_LSB)
 {
         uint32_t freq_data = (float)(frequency * powf(2, 28)) / (float)REF_FREQ;
+        fprintf(stderr, "freq_data: %lu\r\n", freq_data);
         *freq_MSB = (freq_data >> 14);
         *freq_LSB = (freq_data & 0x3FFF); 
 }
@@ -107,8 +108,10 @@ int main(int argc, char **argv)
 	infreq = repeater_input(freq);
 	downconvert(freq, &ten_freq, &obs, &vfo);
 	downconvert(infreq, &ten_infreq, &ibs, &vfoin);
-//	fprintf(stdout, "Output: %.06f Input: %.06f\n", freq, infreq);
+	fprintf(stdout, "Output: %.06f Input: %.06f\n", freq, infreq);
 	calculate_ad9833((freq - vfo) * 1000000, &freq_MSB, &freq_LSB);
+	fprintf(stdout, "Output: %.06f Input: %.06f VFO: %.06f\n", freq, infreq, (freq - vfo) * 1000000);
+
 	fprintf(stdout, ".freq_msb = %u, .freq_lsb = %u }, /* %.3f */\n", freq_MSB, freq_LSB, freq);
 //	fprintf(stdout, ",%.06f,OUTMSB:,%u,OUTLSB:,%u\n", freq, freq_MSB, freq_LSB);
 //	fprintf(stdout, "OUT MSB: %u OUTLSB: %u\n", freq_MSB, freq_LSB);
