@@ -15,7 +15,4 @@ inline static void __attribute__((always_inline)) set_ctcss(uint16_t tone)
 }
 
 
-//extern uint16_t sin_counter;  /* and the counter for it too */
-
-
 #endif

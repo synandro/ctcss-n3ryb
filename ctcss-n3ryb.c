@@ -50,20 +50,6 @@ struct ev_entry *read_channel_ev;
 static void read_channel(void *data);
 static void set_channel(uint16_t band, uint16_t channel);
 
-enum  {
-	HZ_100 = 0,
-	HZ_103_5 = 1,
-	HZ_118_8 = 2,
-	HZ_123 = 3,
-	HZ_127_3 = 4,
-	HZ_131_8 = 5,
-	HZ_141_3 = 6,
-	HZ_146_2 = 7,
-	HZ_167_9 = 8,
-	HZ_179_9 = 9,
-	HZ_NONE = 10,
-};
-
 
 /* these are (Hz * 8) but experimentally checked to be on frequency */
 enum {
@@ -918,7 +904,6 @@ static void process_commands(void *unused)
 	while( (result = rb_linebuf_get(&uart_rx_buf, buf, sizeof(buf)-1, false, false)) > 0)
 	{	
 		parc = rb_string_to_array(buf, para, MAX_PARAMS);
-//		dprintf(PSTR("command with parc: %u\r\n"), parc);
 		for(int i = 0; commands[i].cmd != NULL; i++)
 		{
 			if(commands[i].iscat == true)
@@ -1228,7 +1213,7 @@ static void setup()
 	
 	WDTCSR |= _BV(WDE) | _BV(WDCE); 
 	wdt_enable(WDTO_2S);
-
+	wdt_reset();
 	led_on();
 	
 	cli();
