@@ -21,7 +21,8 @@ EXTRA_FLAGS += -DRESET_ACTIVE
 endif
 # EXTRA_FLAGS += -DF_CPU=8000000L -DCLOCK_SOURCE=6 
 
-COMPILE    = avr-gcc -I/home/n3ryb/dds/simavr/simavr/sim/ -save-temps=obj -Wall -Wextra -Wno-unused-parameter -mmcu=$(DEVICE) -Os -fno-unroll-loops  -finline-functions   -fverbose-asm -std=gnu11 -DF_CPU=16000000L -DBAUD_TOL=2 -DBAUD=38400 -DREF_FREQ=25000000 # -flto
+OPTLEVEL=-Os
+COMPILE    = avr-gcc -save-temps=obj -Wall -Wextra -Wno-unused-parameter -mmcu=$(DEVICE) $(OPTLEVEL)  -finline-functions   -fverbose-asm -std=gnu11 -DF_CPU=16000000L -DBAUD_TOL=2 -DBAUD=38400 -DREF_FREQ=25000000 # -flto
 
 OBJS       = ctcss-n3ryb.o event.o tools.o pwm-sine.o
 OUTNAME    := $(notdir $(patsubst %/,%,$(dir $(realpath $(firstword $(MAKEFILE_LIST))))))
