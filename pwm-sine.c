@@ -30,7 +30,17 @@ uint16_t cur_mult; /* frequency for the sine wave generator.  Value is Hz * 8 */
 uint16_t sin_counter;  /* and the counter for it too */
 
 
-static const uint8_t sine_wave[256] PROGMEM = {
+/* put the sine table into PROGMEM if you are short on RAM
+ * i'd rather keep it in RAM though as its the most commonly hit piece
+ * of data on the system 
+ */
+#ifdef USE_PROGMEM
+#define RB_PGM PROGMEM 
+#else
+#define RB_PGM
+#endif
+
+static const uint8_t sine_wave[256] RB_PGM  = {
 	0x78,0x7b,0x7e,0x81,0x84,0x87,0x8a,0x8d,
 	0x8f,0x92,0x95,0x98,0x9b,0x9e,0xa0,0xa3,
 	0xa6,0xa9,0xab,0xae,0xb1,0xb3,0xb6,0xb8,
@@ -94,5 +104,9 @@ void setup_pwm(void)
 
 ISR(TIMER0_COMPA_vect) 
 {
+#ifdef USE_PROGMEM
 	OCR4D = pgm_read_byte(&sine_wave[((sin_counter += cur_mult) >> 8)]);
+#else
+	OCR4D = sine_wave[((sin_counter += cur_mult) >> 8)];
+#endif
 }
