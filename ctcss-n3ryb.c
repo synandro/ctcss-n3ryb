@@ -855,7 +855,11 @@ static void cmd_reboot(char **argv, uint8_t argc)
         ad9833_shutdown();
         cli();
 	MCUSR = 0; 
-        TCCR0A = TCCR4A = 0; 
+        TCCR0A = 0;
+        TCCR4A = 0;
+        TCCR4B = 0;
+        TCCR4C = 0;
+        TCCR4D = 0; 
         _delay_ms(5000);
         do_reboot();
 }
@@ -914,7 +918,7 @@ static void process_commands(void *unused)
 	while( (result = rb_linebuf_get(&uart_rx_buf, buf, sizeof(buf)-1, false, false)) > 0)
 	{	
 		parc = rb_string_to_array(buf, para, MAX_PARAMS);
-		dprintf(PSTR("command with parc: %u\r\n"), parc);
+//		dprintf(PSTR("command with parc: %u\r\n"), parc);
 		for(int i = 0; commands[i].cmd != NULL; i++)
 		{
 			if(commands[i].iscat == true)
@@ -965,7 +969,7 @@ static void process_uart(void *unused)
 
 	}
 
-	if(p > buf) {
+	if(p >= buf) {
 		rb_linebuf_parse(&uart_rx_buf, buf, (p - buf), true);
 	}
 	return;
@@ -1240,7 +1244,7 @@ static void setup()
 	/* shut off the USB controller before we enable interrupts again - we'll go splat otherwise */
 	USBCON = 0;
 
-	while((PLLCSR & _BV(PLOCK)) == 0)
+	while((PLLCSR & _BV(PLOCK)) == 0);
 
 	PRR0 |= _BV(PRTWI); /* turn off two wire */
 	PRR1 |= _BV(PRUSB); /* and usb too */
