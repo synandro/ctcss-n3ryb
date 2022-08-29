@@ -18,16 +18,6 @@
 #include <util/setbaud.h>
 #include <stdio.h>
 
-
-#if 0
-
-#include <avr/avr_mcu_section.h>
-
-const struct avr_mmcu_vcd_trace_t _mytrace[]  _MMCU_ = {
-    { AVR_MCU_VCD_SYMBOL("PC6"),    .mask = (1<<PC6),    .what = (void*)&PORTC,  },
-};
-#endif
-
 #define dprintf(...) printf_P(__VA_ARGS__)
 
 
@@ -37,7 +27,6 @@ const struct avr_mmcu_vcd_trace_t _mytrace[]  _MMCU_ = {
 #include "event.h"
 #include "pwm-sine.h"
 
-/* globals - we have globals.  it's embedded. whatever */
 
 buf_head_t uart_rx_buf;
 /* buf_head_t uart_tx_buf; */
@@ -547,16 +536,16 @@ static void ad9833_setvfo(uint16_t freq_msb, uint16_t freq_lsb)
 
 static void __attribute__((noinline)) setWave(uint32_t frequency) 
 {
-#if 1
+#if 0
 
 	uint32_t freq_data = ((uint64_t)frequency << 28) / AD9833_FREQ;
 	uint16_t freq_msb = (freq_data >> 14);  //| FREQ0;
 	uint16_t freq_lsb = (freq_data & 0x3FFF); //| FREQ0;
 #endif
-#if 0
+#if 1
 	uint32_t freq_data = (double)(frequency * pow(2, 28)) / (double)AD9833_FREQ;
-	uint32_t freq_msb = (freq_data >> 14);
-	uint32_t freq_lsb = (freq_data & 0x3FFF); 
+	uint16_t freq_msb = (freq_data >> 14);
+	uint16_t freq_lsb = (freq_data & 0x3FFF); 
 #endif
 
 
@@ -569,14 +558,15 @@ static void __attribute__((noinline)) setWave(uint32_t frequency)
 	SPI_write16(freq_lsb | AD9833_D14); /* D14 is freq0 */
 	SPI_write16(freq_msb | AD9833_D14);
 	SPI_write16(AD9833_B28);
+#if 0
 	freq_data = ((uint64_t)(frequency + 1200) << 28) / AD9833_FREQ;
 	freq_msb = (freq_data >> 14);
 	freq_lsb = (freq_data & 0x3FFF);
 	SPI_write16(freq_lsb | AD9833_D15); /* D15 is freq1 */
 	SPI_write16(freq_msb | AD9833_D15);
+#endif
 	ad9833_sselect_high();
 }
-
 
 typedef void CMDCB(char **parv, uint8_t parc);
 
@@ -589,6 +579,7 @@ struct command_struct
 };
 
 
+#if 0
 static void cmd_t(char **argv, uint8_t argc)
 {
 	for(uint16_t i = 0;i < 128;i++)
@@ -600,10 +591,14 @@ static void cmd_t(char **argv, uint8_t argc)
 	}
 }
 
+#endif
+
+#if 0
 static void cmd_r(char **argv, uint8_t argc)
 {
 	SPI_write16(AD9833_FSELECT0);
 }
+#endif
 
 static void cmd_f(char **argv, uint8_t argc)
 {
@@ -670,9 +665,9 @@ static void cmd_adcon(char **argv, uint8_t argc)
 }
 
 
-static void cmd_o(char **argv, uint8_t argc)
+static void cmd_ddsoff(char **argv, uint8_t argc)
 {
-	dprintf(PSTR("\r\nShutting off ad9833\r\n"));
+	dprintf(PSTR("\r\ncmd_ddsoff: Shutting off ad9833\r\n"));
 	ad9833_shutdown();	
 }
 
@@ -858,11 +853,11 @@ static void cmd_help(char **argv, uint8_t argc);
 static const struct command_struct commands[] = {
 //	{ .cmd = "FA", .handler = cmd_vfo_a, .iscat = 1 },
 	{ .cmd = "f", .handler = cmd_f   },
-	{ .cmd = "o", .handler = cmd_o },
+	{ .cmd = "ddsoff", .handler = cmd_ddsoff },
 //	{ .cmd = "FB", .handler = cmd_vfo_b },
 //	{ .cmd = "HI", .handler = cmd_hi },
-	{ .cmd = "T", .handler = cmd_t },
-	{ .cmd = "R", .handler = cmd_r },
+//	{ .cmd = "T", .handler = cmd_t },
+//	{ .cmd = "R", .handler = cmd_r },
 	{ .cmd = "adc", .handler = cmd_adc },
 	{ .cmd = "adcoff", .handler = cmd_adcoff },
 	{ .cmd = "adcon", .handler = cmd_adcon },
@@ -930,10 +925,12 @@ static void process_uart(void *unused)
 {
 	static char buf[BUF_DATA_SIZE];
 	char *p;
-	
+	uint16_t count = 0;
+
+
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
-		if(usart1_int == false)
+		if(usart1_int == false && !bit_is_set(UCSR1A, RXC1))
 			return;
 		usart1_int = false;
 	}
@@ -942,6 +939,7 @@ static void process_uart(void *unused)
 
 	while(bit_is_set(UCSR1A, RXC1))
 	{
+		
 		*p++ = UDR1;
 		if((p - buf) == BUF_DATA_SIZE)
 		{
@@ -951,6 +949,8 @@ static void process_uart(void *unused)
 			}
 			p = buf;
 		}
+		if(++count > 128)
+			break;
 
 	}
 
@@ -1208,9 +1208,7 @@ static void setup()
 
 
 	wdt_reset();
-	DDRC |= _BV(PC7);
-	PORTC |= _BV(PC7);
-	
+
 	WDTCSR |= _BV(WDE) | _BV(WDCE); 
 	wdt_enable(WDTO_2S);
 	wdt_reset();
