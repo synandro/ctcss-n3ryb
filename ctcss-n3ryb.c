@@ -547,7 +547,7 @@ static void __attribute__((noinline)) setWave(uint32_t frequency)
 	uint16_t freq_msb = (freq_data >> 14);
 	uint16_t freq_lsb = (freq_data & 0x3FFF); 
 #endif
-
+	dprintf(PSTR("set_freq: freq_data:%lu freq_msb:%u freq_lsb:%u\r\n"), freq_data, freq_msb, freq_lsb);
 
 	if(dds_power == false)
 		ad9833_init();
@@ -895,8 +895,9 @@ static void process_commands(void *unused)
 
 	int result; 
 	uint8_t parc;
+	uint8_t count = 0;
 
-	while( (result = rb_linebuf_get(&uart_rx_buf, buf, sizeof(buf)-1, false, false)) > 0)
+	while(++count < 128 && ((result = rb_linebuf_get(&uart_rx_buf, buf, sizeof(buf)-1, false, false)) > 0))
 	{	
 		parc = rb_string_to_array(buf, para, MAX_PARAMS);
 		for(int i = 0; commands[i].cmd != NULL; i++)
@@ -937,7 +938,7 @@ static void process_uart(void *unused)
 
 	p = buf;
 
-	while(bit_is_set(UCSR1A, RXC1))
+	while((++count < 128) && bit_is_set(UCSR1A, RXC1))
 	{
 		
 		*p++ = UDR1;
@@ -949,9 +950,6 @@ static void process_uart(void *unused)
 			}
 			p = buf;
 		}
-		if(++count > 128)
-			break;
-
 	}
 
 	if(p >= buf) {
