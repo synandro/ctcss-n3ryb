@@ -38,7 +38,7 @@
 #include "tools.h"
 #include "event.h"
 
-#define MAX_EVENTS 12
+#define MAX_EVENTS 8
 
 
 volatile uint32_t tick;
