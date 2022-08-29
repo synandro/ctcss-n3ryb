@@ -75,17 +75,18 @@ void setup_pwm(void)
 		TCCR4C = 0;
 		TCCR4D = 0;
 		
-		DDRD |= (1 << PD7); 
+		DDRD |= _BV(PD7); /* PD7 is pin D6 on the arduino pro micro */
 
 		OCR4C = 239;
-
-		TCCR4B = _BV(CS42);
-		TCCR4C = _BV(COM4D1) | _BV(PWM4B); 
+		
+		/* timer4 is attached to the PLL */
+		TCCR4B = _BV(CS42); /* use a prescaler of 8 */
+		TCCR4C = _BV(COM4D1) | _BV(PWM4D); /* COM4D1 is OCR4D - CLEAR at compare with OCR4D, SET at 0x00  */
 		TCCR4D = _BV(WGM40) | _BV(WGM41); 
 
-		TCCR0A = _BV(COM0B0) | _BV(WGM00) | _BV(WGM01);
-		TCCR0B = _BV(WGM02) | _BV(CS01);
-		TIMSK0 = _BV(OCIE0A);		
+		TCCR0A = _BV(COM0B0) | _BV(WGM00) | _BV(WGM01); /* the WGM bits in both TCCR0A and TCCR0B set PWM -  */ 
+		TCCR0B = _BV(WGM02) | _BV(CS01); 		/* UP to OCR0A, DOWN to 0x00, PWM mode */
+		TIMSK0 = _BV(OCIE0A);		 
 		OCR0A = 243;
 	}
 }
