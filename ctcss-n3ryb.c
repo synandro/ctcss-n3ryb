@@ -44,18 +44,18 @@ static void set_channel(uint16_t band, uint16_t channel);
 enum {
 	/* these are (Hz * 8) but experimentally checked to be on frequency */
 
-	MULT_77_0 = 618,
+	MULT_77_0 = 616,
 	MULT_100_0 = 800,
 	MULT_103_5 = 828,
-	MULT_118_8 = 949,
+	MULT_118_8 = 950,
 	MULT_123_0 = 984,
-	MULT_127_3 = 1017,
-	MULT_131_8 = 1052,
-	MULT_141_3 = 1129, 
-	MULT_146_2 = 1168,
-	MULT_167_9 = 1342,
-	MULT_179_9 = 1439,
-	MULT_203_5 = 1624,
+	MULT_127_3 = 1018,
+	MULT_131_8 = 1054,
+	MULT_141_3 = 1130, 
+	MULT_146_2 = 1169,
+	MULT_167_9 = 1343,
+	MULT_179_9 = 1438,
+	MULT_203_5 = 1627,
 	MULT_NONE = 0,
 	
 	/* these all need tested */
@@ -63,7 +63,7 @@ enum {
 	MULT_69_3 = 554,
 	MULT_71_9 = 575,
 	MULT_74_4 = 595,
-	MULT_79_7 = 638,
+	MULT_79_7 = 637,
 	MULT_82_5 = 660,
 	MULT_85_4 = 683,
 	MULT_88_5 = 708,
@@ -71,25 +71,25 @@ enum {
 
 	MULT_94_8 = 758,
 	MULT_97_4 = 779,
-	MULT_107_2 = 858,
+	MULT_107_2 = 857,
 	MULT_110_9 = 887,
 	MULT_114_8 = 918,
-	MULT_136_5 = 1092,
+	MULT_136_5 = 1091,
 	MULT_151_4 = 1211,
-	MULT_156_7 = 1254,
-	MULT_162_2 = 1298,
+	MULT_156_7 = 1253,
+	MULT_162_2 = 1297,
 	MULT_173_8 = 1390,
-	MULT_186_2 = 1490,
-	MULT_192_8 = 1542,
-	MULT_206_5 = 1652,
-	MULT_210_7 = 1686,
-	MULT_218_1 = 1745,
-	MULT_225_7 = 1806,
-	MULT_229_1 = 1833,
-	MULT_233_6 = 1869,
+	MULT_186_2 = 1489,
+	MULT_192_8 = 1541,
+	MULT_206_5 = 1651,
+	MULT_210_7 = 1685,
+	MULT_218_1 = 1744,
+	MULT_225_7 = 1805,
+	MULT_229_1 = 1832,
+	MULT_233_6 = 1868,
 	MULT_241_8 = 1934,
-	MULT_250_3 = 2002,
-	MULT_254_1 = 2033,
+	MULT_250_3 = 2001,
+	MULT_254_1 = 2031,
 
 
 
@@ -259,28 +259,56 @@ struct memory_entry bands[BAND_MAX][CHAN_MAX] EEMEM = {
 
 /* min/max range for each band switch */
 /* yes, they are out of order on purpose. i wired them wrong!  */
+
+/*
+CMD_LISTADC: band = 0, .min = 260, .max = 280 
+CMD_LISTADC: band = 1, .min = 200, .max = 230 
+CMD_LISTADC: band = 2, .min = 335, .max = 350 
+CMD_LISTADC: band = 3, .min = 300, .max = 320 
+CMD_LISTADC: band = 4, .min = 520, .max = 540 
+CMD_LISTADC: band = 5, .min = 415, .max = 430 
+CMD_LISTADC: band = 6, .min = 680, .max = 700 
+CMD_LISTADC: band = 7, .min = 598, .max = 620 
+*/
+
 static uint16_t band_switch_range[BAND_MAX][2] EEMEM  = {
 	{ 260, 280 },
 	{ 200, 230 },
-	{ 340, 355 },
+	{ 335, 350 },
 	{ 300, 320 },
-	{ 415, 430 },
 	{ 520, 540 },
+	{ 415, 430 },
 	{ 680, 700 },
 	{ 598, 620 }
 };
+
+
+/*
+CMD_LISTADC: channel = 0, .min = 0, .max = 0 
+CMD_LISTADC: channel = 1, .min = 970, .max = 1024 
+CMD_LISTADC: channel = 2, .min = 140, .max = 160 
+CMD_LISTADC: channel = 3, .min = 120, .max = 131 
+CMD_LISTADC: channel = 4, .min = 170, .max = 190 
+CMD_LISTADC: channel = 5, .min = 200, .max = 215 
+CMD_LISTADC: channel = 6, .min = 245, .max = 260 
+CMD_LISTADC: channel = 7, .min = 280, .max = 300 
+CMD_LISTADC: channel = 8, .min = 330, .max = 345 
+CMD_LISTADC: channel = 9, .min = 840, .max = 890 
+CMD_LISTADC: channel = 10, .min = 359, .max = 375 
+CMD_LISTADC: channel = 11, .min = 670, .max = 700 
+*/
 	
 /* min/max range for each band switch */
 static uint16_t channel_switch_range[CHAN_MAX][2] EEMEM = {
-	{ 0, 0 },
-	{ 8, 15 },
+	{ 0, 30 },
+	{ 970, 1024 },
 	{ 140, 160 },
 	{ 120, 131 },
 	{ 170, 190 },
 	{ 200, 215 },
 	{ 245, 260 },
 	{ 280, 300 },
-	{ 325, 345 },
+	{ 330, 345 },
 	{ 840, 890 },
 	{ 359, 375 },
 	{ 670, 700 }
@@ -328,8 +356,8 @@ static inline __attribute__((always_inline)) void led_off(void)
 	DDRD |= _BV(PD1) | _BV(PD5);
 	PORTD &= ~(_BV(PD1) | _BV(PD5));
 
-	DDRC |= _BV(PC7);
-	PORTC &= ~_BV(PC7);
+//	DDRC |= _BV(PC7);
+//	PORTC &= ~_BV(PC7);
 }
 
 static inline  __attribute__((always_inline)) void led_on(void)
@@ -342,6 +370,12 @@ static inline __attribute__((always_inline)) void led_toggle(void)
 {
 	PORTD ^= _BV(PD1) | _BV(PD5); 
 }
+
+static void blink1_cb(void *data)
+{
+	led_toggle();
+}
+
 
 
 #if 0
@@ -644,7 +678,7 @@ static void cmd_adc(char **argv, uint8_t argc)
 	
 	if(adc_ev == NULL)
 	{
-		dprintf(PSTR("\rCMD_ADC: starting ADC event"));
+		dprintf(PSTR("\rCMD_ADC: starting ADC event\r\n"));
 		adc_ev = rb_event_add(cmd_adc_cb, NULL, 1000, 0);
 	} else {
 		rb_event_delete(adc_ev);
@@ -656,6 +690,7 @@ static void cmd_adcoff(char **argv, uint8_t argc)
 {
 	dprintf(PSTR("\r\nADC OFF\r\n"));
 	rb_event_delete(read_channel_ev);
+	read_channel_ev = NULL;
 }
 
 static void cmd_adcon(char **argv, uint8_t argc)
@@ -897,9 +932,14 @@ static void process_commands(void *unused)
 	uint8_t parc;
 	uint8_t count = 0;
 
-	while(++count < 128 && ((result = rb_linebuf_get(&uart_rx_buf, buf, sizeof(buf)-1, false, false)) > 0))
+	while(++count < 128 && ((result = rb_linebuf_get(&uart_rx_buf, buf, BUF_DATA_SIZE, false, false)) > 0))
 	{	
+		wdt_reset();
 		parc = rb_string_to_array(buf, para, MAX_PARAMS);
+		if(parc == 0)
+		{
+			continue;
+		}
 		for(int i = 0; commands[i].cmd != NULL; i++)
 		{
 			if(commands[i].iscat == true)
@@ -937,12 +977,13 @@ static void process_uart(void *unused)
 	}
 
 	p = buf;
-
-	while((++count < 128) && bit_is_set(UCSR1A, RXC1))
+	
+	while((++count < 32) && bit_is_set(UCSR1A, RXC1))
 	{
+		wdt_reset();
 		
 		*p++ = UDR1;
-		if((p - buf) == BUF_DATA_SIZE)
+		if((p - buf) == BUF_DATA_SIZE - 1)
 		{
 			if(rb_linebuf_parse(&uart_rx_buf, buf, p - buf, true) == 0)
 			{
@@ -1005,6 +1046,7 @@ static uint16_t adc_avg(void)
 	for(uint8_t i = 0; i < adc_samples; i++)
 	{
 		ADCSRA |= _BV(ADSC);
+		wdt_reset();
 		while(!bit_is_set(ADCSRA,ADSC));
 		adc_val += ADCW;
 	}
@@ -1017,6 +1059,7 @@ static void adc_avg_channel(uint16_t *channel, uint16_t *band)
 	ADMUX = ADMUX_ADC11;
 	ADCSRB = ADCSRB_ADC11;
 	
+	wdt_reset();
 	_delay_us(250);
 	wdt_reset();	
 	*band = adc_avg();
@@ -1026,7 +1069,7 @@ static void adc_avg_channel(uint16_t *channel, uint16_t *band)
 	ADMUX = ADMUX_ADC12;
 	ADCSRB = ADCSRB_ADC12;
 	ADCSRA |= _BV(ADSC) | _BV(ADEN);
-
+	wdt_reset();
 	_delay_us(250);
 	wdt_reset();
 	*channel = adc_avg();
@@ -1040,7 +1083,7 @@ static void adc_avg_channel(uint16_t *channel, uint16_t *band)
 
 static bool lookup_channel(uint16_t adc_val, uint16_t *channel)
 {
-	uint16_t channel_range[CHAN_MAX][2];
+	static uint16_t channel_range[CHAN_MAX][2];
 	uint8_t i; 
 
 	eeprom_read_block(&channel_range, &channel_switch_range, sizeof(channel_range));
@@ -1061,7 +1104,7 @@ static bool lookup_channel(uint16_t adc_val, uint16_t *channel)
 
 static bool lookup_band(uint16_t adc_val, uint16_t *band)
 {
-	uint16_t band_range[BAND_MAX][2];
+	static uint16_t band_range[BAND_MAX][2];
 	uint8_t i;
 	
 	eeprom_read_block(&band_range, &band_switch_range, sizeof(band_range));
@@ -1119,6 +1162,8 @@ static void set_channel(uint16_t band, uint16_t channel)
 		ad9833_shutdown();
 		return;
 	} 
+	led_on();
+	rb_event_add(blink1_cb, NULL, 1000, 4);
 	
 	ad9833_setvfo(m.freq_msb, m.freq_lsb);
 }
@@ -1130,7 +1175,8 @@ static void read_channel(void *data)
 	uint32_t now;	
 	uint16_t c, b;
 	uint16_t new_channel = 0, new_band = 0;
-
+	
+	wdt_reset();
 	adc_avg_channel(&c, &b);			
 	now = current_ts();
 //	dprintf(PSTR("read_channel: %lu: ADC average: channel: %u band: %u\r\n"), now, c, b);
@@ -1143,35 +1189,23 @@ static void read_channel(void *data)
 	{
 		dprintf(PSTR("read_channel: ADC out of range for channel: value: %u\r\n"), c);
 		return;
-/*
-		last_change = now;
-		cur_mult = 0;
-		current_channel = 0;
-		ad9833_shutdown();
-*/
-		return;
 	}
 
 	if(lookup_band(b, &new_band) == false)
 	{
-		dprintf(PSTR("read_channel: ADC out of range for band: value: %u\r\n"), b);
-/*		last_change = now;
-		cur_mult = 0;
-		ad9833_shutdown();
-*/
+		wdt_reset();
+		/* lower than this means we're transmitting with a repeater */
+		if(b > 30) 
+			dprintf(PSTR("read_channel: ADC out of range for band: value: %u\r\n"), b);
 		return;
 	}
 
 
 	if((current_channel == new_channel) && (current_band == new_band))
 	{
-//		dprintf(PSTR("read_channel: No changes to make: b:%u c:%u\r\n"), new_band, new_channel);
 		return;
 	}
-//	last_channel = current_channel;
-//	last_band = current_band;
-//	last_change = now;
-
+	wdt_reset();
 	current_band = new_band;
 	current_channel = new_channel;
 	set_channel(new_band, new_channel);
@@ -1194,10 +1228,6 @@ static void blink_cb(void *data)
 	led_toggle();
 }
 
-static void blink1_cb(void *data)
-{
-	led_toggle();
-}
 
 static void setup() 
 {
@@ -1243,12 +1273,12 @@ static void setup()
  	adc_init();
  	dprintf(PSTR("Out of adc_init()\r\n"));
  	
-//	read_channel_ev = rb_event_add(read_channel, NULL, 200, 0);
+	read_channel_ev = rb_event_add(read_channel, NULL, 200, 0);
 	rb_event_add(process_uart, NULL, 50, 0);
 	rb_event_add(process_commands, NULL, 20, 0);
 	rb_event_add(blink_cb, NULL, 250, 4);
-	rb_event_add(blink1_cb, NULL, 2000, 0);
-
+//	rb_event_add(blink1_cb, NULL, 2000, 0);
+	led_on();
 	dprintf(PSTR("setup finished\r\n"));	
 }
 
@@ -1258,10 +1288,10 @@ int main(void)
 //	cmd_listchan(NULL, 0);
 //	cmd_listadc(NULL, 0);
 //	cmd_adcon(NULL, 0);
-	cur_mult = 984;
 	dprintf(PSTR("starting event loop\r\n"));
 	while(1)
 	{
+		wdt_reset();
 		rb_event_run();
 		wdt_reset();
 	}

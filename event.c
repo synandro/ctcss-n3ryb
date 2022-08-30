@@ -33,10 +33,14 @@
 #include <stdbool.h>
 #include <string.h>
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
 #include <util/atomic.h>
-
+#include <stdio.h>
 #include "tools.h"
 #include "event.h"
+
+#define dprintf(...) printf_P(__VA_ARGS__)
+
 
 #define MAX_EVENTS 8
 
@@ -117,6 +121,7 @@ rb_set_back_events(int32_t by)
 {
 	rb_dlink_node *ptr;
 	struct ev_entry *ev;
+	dprintf(PSTR("rb_set_back_events called\r\n"));
 	RB_DLINK_FOREACH(ptr, event_list.head)
 	{
 		ev = ptr->data;
@@ -138,9 +143,9 @@ void rb_event_run(void)
 	/* reset the counter before it gets anywhere near close to overflow */	
 	if(now > (INT32_MAX / 2)) 
 	{
-		rb_set_back_events((INT32_MAX / 2) + 1000);
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 		{
+			rb_set_back_events((INT32_MAX / 2) + 1000);
 			tick = tick - (INT32_MAX / 2);
 		}
 	}
