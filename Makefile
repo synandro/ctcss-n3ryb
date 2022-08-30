@@ -46,7 +46,7 @@ all-1: test-serial.hex
 #install: $(OUTNAME).hex
 #	micronucleus $^
 
-install: $(OUTNAME).hex $(OUTNAME).eep
+install: $(OUTNAME).hex 
 	pkill -TSTP minicom || true
 	avrdude -c arduino -p m32u4 -P /dev/ttyUSB1 -v -b 115200  -U flash:w:$^
 	#  -U eeprom:w:$(OUTNAME).eep
