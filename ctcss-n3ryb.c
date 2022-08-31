@@ -1,3 +1,23 @@
+/*
+ *  Copyright 2022 Aaron Sethman <androsyn@ratbox.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+ *  USA
+ */
+
+
 
 #define CHAN_VFO 0
 #define CHAN_MAX 12
@@ -263,29 +283,37 @@ struct memory_entry bands[BAND_MAX][CHAN_MAX] EEMEM = {
 		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0 },
 		{ .ctcss_tone = CTCSS_100_0, .freq_msb = 5321, .freq_lsb = 8572, .rev_msb = 5714, .rev_lsb = 12111 }, /* 147.120 "Chambersburg Clark's Knob W3ACH" */
 		{ .ctcss_tone = CTCSS_167_9, .freq_msb = 5341, .freq_lsb = 3014, .rev_msb = 5734, .rev_lsb = 6553  }, /* 147.150 "Blue Knob Ski Resort KB3KWD" */
-		{ .ctcss_tone = CTCSS_167_9, .freq_msb = 5351, .freq_lsb = 235, .rev_msb = 5744, .rev_lsb = 3774   }, /* 147.165 "Warrenton W4VA */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5409, .freq_lsb = 16331, .rev_msb = 5803, .rev_lsb = 3486 }, /* 147.255 "Martinsburg WB8YZV */
-		{ .ctcss_tone = CTCSS_203_5, .freq_msb = 5419, .freq_lsb = 13552, .rev_msb = 5813, .rev_lsb = 707 }, /* 147.270 "Gum Spring WB4IKL */
-		{ .ctcss_tone = CTCSS_103_5, .freq_msb = 5429, .freq_lsb = 10774, .rev_msb = 5822, .rev_lsb = 14313 }, /* 147.285 "Circleville Spruce Knob N8HON */
-		{ .ctcss_tone = CTCSS_146_2, .freq_msb = 5439, .freq_lsb = 7995, .rev_msb = 5832, .rev_lsb = 11534 }, /* 147.300 "Bluemont Blue Ridge WA4TSC */
-		{ .ctcss_tone = CTCSS_131_8, .freq_msb = 5449, .freq_lsb = 5216, .rev_msb = 5842, .rev_lsb = 8755 }, /* 147.315 "Basye Great North Mountain K4MRA" */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5468, .freq_lsb = 16043, .rev_msb = 5862, .rev_lsb = 3198 }, /* 147.345 "Clear Spring K3MAD */
-		{ .ctcss_tone = CTCSS_127_3, .freq_msb = 5478, .freq_lsb = 13264, .rev_msb = 5872, .rev_lsb = 419 }, /* 147.360 "Skyline K7SOB */
+//		{ .ctcss_tone = CTCSS_167_9, .freq_msb = 5351, .freq_lsb = 235, .rev_msb = 5744, .rev_lsb = 3774   }, /* 147.165 "Warrenton W4VA */
+//		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5409, .freq_lsb = 16331, .rev_msb = 5803, .rev_lsb = 3486 }, /* 147.255 "Martinsburg WB8YZV */
+//		{ .ctcss_tone = CTCSS_203_5, .freq_msb = 5419, .freq_lsb = 13552, .rev_msb = 5813, .rev_lsb = 707 }, /* 147.270 "Gum Spring WB4IKL */
+//		{ .ctcss_tone = CTCSS_103_5, .freq_msb = 5429, .freq_lsb = 10774, .rev_msb = 5822, .rev_lsb = 14313 }, /* 147.285 "Circleville Spruce Knob N8HON */
+//		{ .ctcss_tone = CTCSS_146_2, .freq_msb = 5439, .freq_lsb = 7995, .rev_msb = 5832, .rev_lsb = 11534 }, /* 147.300 "Bluemont Blue Ridge WA4TSC */
+//		{ .ctcss_tone = CTCSS_131_8, .freq_msb = 5449, .freq_lsb = 5216, .rev_msb = 5842, .rev_lsb = 8755 }, /* 147.315 "Basye Great North Mountain K4MRA" */
+//		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5468, .freq_lsb = 16043, .rev_msb = 5862, .rev_lsb = 3198 }, /* 147.345 "Clear Spring K3MAD */
+//		{ .ctcss_tone = CTCSS_127_3, .freq_msb = 5478, .freq_lsb = 13264, .rev_msb = 5872, .rev_lsb = 419 }, /* 147.360 "Skyline K7SOB */
+		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
+		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
+		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
+		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
+		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
+		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
+		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
+		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
 		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
 
 	}, 
 	{
 		/* band 7 - 147.5 - 148 */
 		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
+		{ .ctcss_tone = CTCSS_146_2, .freq_msb = 5111, .freq_lsb = 13238, .rev_msb = 5505, .rev_lsb = 393 }, /* 147.300 "Bluemont Blue Ridge WA4TSC"   */
+		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5082, .freq_lsb = 5190, .rev_msb = 5475, .rev_lsb = 8729 }, /* 147.255 "Martinsburg WB8YZV" */
+		{ .ctcss_tone = CTCSS_103_5, .freq_msb = 5101, .freq_lsb = 16016, .rev_msb = 5495, .rev_lsb = 3171 }, /* 147.285 "Circleville Spruce Knob N8HON" */
+		{ .ctcss_tone = CTCSS_131_8, .freq_msb = 5121, .freq_lsb = 10459, .rev_msb = 5514, .rev_lsb = 13998 }, /* 147.315 Basye Great North Mountain K4MRA" vfo: 139.500000 */
+		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5141, .freq_lsb = 4902, .rev_msb = 5534, .rev_lsb = 8441 }, /* 147.345 Clear Spring K3MAD" vfo: 139.500000 */
+		{ .ctcss_tone = CTCSS_127_3, .freq_msb = 5151, .freq_lsb = 2123, .rev_msb = 5544, .rev_lsb = 5662 }, /* 147.360 Skyline K7SOB" vfo: 139.500000 */
+		{ .ctcss_tone = CTCSS_100_0, .freq_msb = 4993, .freq_lsb = 13814, .rev_msb = 5387, .rev_lsb = 969 }, /* 147.120 Chambersburg Clark's Knob W3ACH vfo: 139.500000 */
+		{ .ctcss_tone = CTCSS_167_9, .freq_msb = 5013, .freq_lsb = 8257, .rev_msb = 5406, .rev_lsb = 11796 }, /* 147.150 Blue Knob Ski Resort KB3KWD vfo: 139.500000 */
+		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },	
 		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
 		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 },
 	}
@@ -993,6 +1021,7 @@ static void cmd_help(char **argv, uint8_t argc)
 	dprintf(PSTR("\r\nHELP - List of commands for encoder/DDS\r\n"));
 	for(uint8_t x = 0; commands[x].cmd != NULL; x++)
 	{
+		wdt_reset();
 		dprintf(PSTR("HELP: %s\r\n"), commands[x].cmd);
 	}
 }
@@ -1226,6 +1255,7 @@ static void set_channel(uint16_t band, uint16_t channel)
 
 	eeprom_read_block(&m, &bands[band][channel], sizeof(m));
 
+	wdt_reset();
 	if(m.freq_lsb == UINT16_MAX)
 		m.freq_lsb = 0;
 	
@@ -1271,12 +1301,7 @@ static void read_channel(void *data)
 //	now = current_ts();
 
 	if(b < 30)
-	{
-		/* we're probably transmitting, ignore changes for now */
-		/* not even going to try to sort out what is going on here 
-		 * just don't make changes when txing, okay? */
 		return;
-	}
 
 	/* noise or out of range */
 	if(lookup_band(b, &new_band) == false)
@@ -1298,14 +1323,14 @@ static void read_channel(void *data)
 	}
 	
 
-	if(pending_band_change == false && current_band != new_band )
+	if((pending_band_change == false) && (current_band != new_band))
 	{
 		pending_band_change = true;
 		pending_change_now = true;
 		pending_band = new_band;	
 	}
 	
-	if(pending_channel_change == false && current_channel != new_channel)
+	if((pending_channel_change == false) && (current_channel != new_channel))
 	{
 		pending_channel_change = true;
 		pending_channel = new_channel;
