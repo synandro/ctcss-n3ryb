@@ -42,7 +42,7 @@
 #define dprintf(...) printf_P(__VA_ARGS__)
 
 
-#define MAX_EVENTS 8
+#define MAX_EVENTS 10
 
 
 volatile uint32_t tick;
