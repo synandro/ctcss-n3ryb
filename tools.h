@@ -32,8 +32,13 @@
 
 /* static memory allocations for linebufs.  reduce these if you want to reduce SRAM memory footprint */
 #define BUF_DATA_SIZE 64
-#define LINEBUF_MAXLINES 8
+#define LINEBUF_MAXLINES 6
 
+
+#define rb_likely(x)       __builtin_expect(!!(x), 1)
+#define rb_unlikely(x)     __builtin_expect(!!(x), 0)
+
+//#define rb_unlikely
 
 #define RB_DLINK_FOREACH(pos, head) for (pos = (head); pos != NULL; pos = pos->next)
 
@@ -61,10 +66,9 @@ typedef struct _rb_dlink_list rb_dlink_list;
 
 struct _rb_dlink_node
 {
-	void *data;
 	rb_dlink_node *prev;
 	rb_dlink_node *next;
-
+	void *data;
 };
 
 struct _rb_dlink_list
@@ -77,8 +81,8 @@ struct _rb_dlink_list
 
 typedef struct _buf_line
 {
-	uint16_t len;		/* How much data we've got */
 	rb_dlink_node node;
+	int16_t len;		/* How much data we've got */
 	bool terminated;     /* Whether we've terminated the buffer */
 	bool used; 
 	bool raw;	    /* Whether this linebuf may hold 8-bit data */

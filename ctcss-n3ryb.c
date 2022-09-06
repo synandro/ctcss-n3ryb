@@ -55,16 +55,24 @@ buf_head_t uart_rx_buf;
 uint16_t current_band;
 uint16_t current_channel;
 uint32_t scan_rate EEMEM = 500;
+uint32_t dwell_time EEMEM = 2000;
+uint32_t dtime = 2000; /* so we don't need to keep loading dwell_time from eeprom */
+
 volatile bool is_split = false;
+volatile bool is_squelched = false;
+volatile bool is_txing = false;
+
+
+
 
 
 
 struct ev_entry *read_channel_ev; 
 struct ev_entry *scan_channel_ev = NULL;
 
-static void read_channel(void *data);
+static void read_channel(void);
 static void set_channel(uint16_t band, uint16_t channel, bool report);
-static void do_scan(void *unused);
+static void do_scan(void);
 static void stop_scan(void);
 static void start_scan(void);
 
@@ -172,7 +180,6 @@ struct memory_entry {
 	bool skip;
 };
 
-
 /* So we are using a precomputed frequency table for the LSB and MSB half of the frequency
  * this all assumes that the clock on the ad9833 is running at 25MHz
  * 
@@ -194,7 +201,7 @@ struct memory_entry {
 */
 
 struct memory_entry bands[BAND_MAX][CHAN_MAX] EEMEM = {
-	
+
 	{
 		/* band 0 - 144-144.49 */
 		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0 },
@@ -373,8 +380,6 @@ static const uint16_t band_switch_range[BAND_MAX][2] ADC_MEM  = {
 	{ 598, 620 }
 };
 
-
-	
 /* min/max range for each band switch */
 static const uint16_t channel_switch_range[CHAN_MAX][2] ADC_MEM = {
 	{ 0, 30 },
@@ -389,6 +394,15 @@ static const uint16_t channel_switch_range[CHAN_MAX][2] ADC_MEM = {
 	{ 840, 890 },
 	{ 359, 375 },
 	{ 670, 700 }
+};
+
+typedef void CMDCB(char **parv, uint8_t parc);
+
+struct command_struct 
+{
+	const char *cmd;
+	CMDCB *handler;
+	bool iscat; /* a cat command, only match the first two characters */
 };
 
 
@@ -443,13 +457,6 @@ static inline __attribute__((always_inline)) void led_toggle(void)
 	PORTD ^= _BV(PD1);
 }
 
-static void ledon_cb(void *data)
-{
-	dprintf(PSTR("LEDON_CB\r\n"));
-	led_on();	
-}
-
-
 static void cmd_uptime(char **argv, uint8_t argc)
 {
 	dprintf(PSTR("\r\nCMD_UPTIME: %lu milliseconds\r\n"), current_ts());
@@ -494,12 +501,13 @@ static int uart_putchar(char c, FILE *stream)
     return c;
 }
 
+#if 0
 int uart_getchar(FILE *stream) 
 {
     loop_until_bit_is_set(UCSR1A, RXC1); /* Wait until data exists. */
     return UDR1;
 }
-
+#endif
 volatile bool usart1_int;
 
 ISR(USART1_RX_vect)
@@ -511,7 +519,7 @@ ISR(USART1_RX_vect)
 
 
 FILE uart_output = FDEV_SETUP_STREAM(uart_putchar, NULL, _FDEV_SETUP_WRITE);
-FILE uart_input = FDEV_SETUP_STREAM(NULL, uart_getchar, _FDEV_SETUP_READ);
+// FILE uart_input = FDEV_SETUP_STREAM(NULL, uart_getchar, _FDEV_SETUP_READ);
 
 static void uart_init(void) 
 {
@@ -527,7 +535,7 @@ static void uart_init(void)
 	UCSR1C = _BV(UCSZ11) | _BV(UCSZ10); /* 8-bit data */
 	UCSR1B = _BV(RXEN1) | _BV(TXEN1) | _BV(RXCIE1);   /* Enable RX and TX */
 	stdout = &uart_output;
-	stdin  = &uart_input;
+//	stdin  = &uart_input;
 }
 
 
@@ -547,10 +555,9 @@ static void SPI_write16 (const uint16_t data)
 	SPI_write(data & 0xFF);
 }
 
-void spi_init(void)
+static void spi_init(void)
 {
 	/*  PB1 = SCLK, PB2 = MOSI, PB3 = MISO */
-	
 	DDRB |= _BV(PB1) | _BV(PB2);
 	PORTB &= ~(_BV(PB1) | _BV(PB2)) ;
 	SPCR  = _BV(SPE)| _BV(MSTR)| _BV(SPR0) | _BV(CPOL);
@@ -572,29 +579,32 @@ static inline void ad9833_sselect_low(void)
 
 static bool dds_power;
 
-static void dds_amp_on(void)
+
+static inline void __attribute__((always_inline)) dds_amp_on(void)
 {
 	DDRF |= _BV(PF4);
 	PORTF |= _BV(PF4); 
 }
 
-static void dds_amp_off(void)
+static inline void __attribute__((always_inline)) dds_amp_off(void)
 {
 	PORTF &= ~_BV(PF4);
 }
 
-static void ad9833_off(void)
+static inline void __attribute__((always_inline)) ad9833_off(void)
 {
 	PORTF &= ~_BV(PF5); 
-	dds_power = 0;
+	dds_power = false;
 }
 
-static void ad9833_on(void)
+static inline void __attribute__((always_inline)) ad9833_on(void)
 {
 	DDRF |= _BV(PF5);
 	PORTF |= _BV(PF5);
-	dds_power = 1;
+	dds_power = true;
 }
+
+
 
 static void ad9833_init(void)
 {
@@ -612,7 +622,6 @@ static void ad9833_init(void)
 	SPI_write16(AD9833_RESET);
 	ad9833_sselect_high();
 	dds_amp_on();
-
 }
 
 
@@ -634,7 +643,6 @@ static void ad9833_setvfo(uint16_t freq_msb, uint16_t freq_lsb, uint16_t rev_msb
 	if(dds_power == false)
 		ad9833_init();
 
-		
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		if(rev_msb > 0 || rev_lsb > 0)
@@ -657,18 +665,22 @@ static void ad9833_setvfo(uint16_t freq_msb, uint16_t freq_lsb, uint16_t rev_msb
 	dds_amp_on();
 
 }
-
+// #define USE_DOUBLE 1
 static void calc_freq(const char *f, uint16_t *freq_msb, uint16_t *freq_lsb)
 {
 	uint32_t freq_data;
-
+#ifdef USE_DOUBLE
 	double frequency;
 	frequency = atof(f);
 
 	freq_data = (uint32_t)((double)(frequency * pow(2, 28)) / (double)AD9833_FREQ);
-
-	*freq_msb = (freq_data >> 14);  //| FREQ0;
-	*freq_lsb = (freq_data & 0x3FFF); //| FREQ0;
+#else
+	uint32_t frequency;
+	frequency = atoul(f);
+	freq_data = (uint32_t)((uint64_t)frequency << 28) / AD9833_FREQ;
+#endif
+	*freq_msb = (freq_data >> 14);
+	*freq_lsb = (freq_data & 0x3FFF);
 	return;		
 }
 
@@ -689,8 +701,8 @@ static void __attribute__((noinline)) set_freq(const char *f)
 	SPI_write16(AD9833_B28);
 	SPI_write16(freq_lsb | AD9833_D14); /* D14 is freq0 */
 	SPI_write16(freq_msb | AD9833_D14);
-//	SPI_write16(AD9833_B28);
 #if 0
+	SPI_write16(AD9833_B28);
 	freq_data = ((uint64_t)(frequency + 1200) << 28) / AD9833_FREQ;
 	freq_msb = (freq_data >> 14);
 	freq_lsb = (freq_data & 0x3FFF);
@@ -699,16 +711,6 @@ static void __attribute__((noinline)) set_freq(const char *f)
 #endif
 	ad9833_sselect_high();
 }
-
-typedef void CMDCB(char **parv, uint8_t parc);
-
-
-struct command_struct 
-{
-	const char *cmd;
-	CMDCB *handler;
-	bool iscat; /* a cat command, only match the first two characters */
-};
 
 
 #if 0
@@ -752,32 +754,29 @@ static void cmd_tone(char **argv, uint8_t argc)
 		dprintf(PSTR("\r\ncmd_tone: Not enough arguments:  TONE frequency\r\n"));
 		return;
 	}
-	
-		
 	set_ctcss(atoul(argv[1]));
 	dprintf(PSTR("\r\ncmd_tone: Set frequency to (%u / 8)Hz \r\n"), cur_mult);
 }
 
 static void adc_avg_channel(uint16_t *channel, uint16_t *band);
 
-static void cmd_adc_cb(void *data)
+static void cmd_adc_cb(void)
 {
 	uint16_t channel, band;
 	adc_avg_channel(&channel, &band);
 	dprintf(PSTR("\rADC: channel:%u band:%u"), channel, band);
-
 }
 
-static struct ev_entry *adc_ev; 
 static void cmd_adc(char **argv, uint8_t argc)
 {
+	static struct ev_entry *adc_ev; 
 	uint16_t channel, band;
 	adc_avg_channel(&channel, &band);
 	
 	if(adc_ev == NULL)
 	{
 		dprintf(PSTR("\rCMD_ADC: starting ADC event\r\n"));
-		adc_ev = rb_event_add(cmd_adc_cb, NULL, 1000, 0);
+		adc_ev = rb_event_add(cmd_adc_cb, 1000, 0);
 	} else {
 		rb_event_delete(adc_ev);
 		adc_ev = NULL;
@@ -794,7 +793,7 @@ static void cmd_adcoff(char **argv, uint8_t argc)
 static void cmd_adcon(char **argv, uint8_t argc)
 {
 	dprintf(PSTR("\r\nADC ON\r\n"));
-	read_channel_ev = rb_event_add(read_channel, NULL, 1500, 0);
+	read_channel_ev = rb_event_add(read_channel, 1500, 0);
 }
 
 
@@ -830,7 +829,8 @@ static void cmd_chan(char **argv, uint8_t argc)
 static void cmd_listadc(char **argv, uint8_t argc)
 {
 	uint16_t band, channel, range[2];
-	dprintf(PSTR("CMD_LISTADC\r\n"));
+
+	dprintf(PSTR("\r\nCMD_LISTADC\r\n"));
 
 	for(band = 0; band < BAND_MAX; band++)
 	{
@@ -843,6 +843,7 @@ static void cmd_listadc(char **argv, uint8_t argc)
 #endif
 		dprintf(PSTR("CMD_LISTADC: band = %u, .min = %u, .max = %u \r\n"), band, range[0], range[1]);
 	}
+
 	for(channel = 0; channel < CHAN_MAX; channel++)
 	{
 		wdt_reset();
@@ -879,7 +880,7 @@ static void cmd_savechan(char **argv, uint8_t argc)
 {
 	struct memory_entry m;
 	uint8_t band, channel;
-//	uint16_t freq_msb, freq_lsb;
+
 	/* savechan band channel outfreq infreq tone */
 	if(argc != 6)
 	{
@@ -996,16 +997,19 @@ static void cmd_status(char **argv, uint8_t argc)
 static void cmd_scanrate(char **argv, uint8_t argc)
 {
 	uint32_t srate;
-	if(argc != 2)
+	if(argc != 3)
 	{
-		dprintf(PSTR("\r\nSCANRATE milliseconds\r\n"));
+		dprintf(PSTR("\r\nSCANRATE [scanrate] [dwell time] (in ms)\r\n"));
 		srate = eeprom_read_dword(&scan_rate);
-		dprintf(PSTR("Current rate is: %lu\r\n"), srate);
+		dtime = eeprom_read_dword(&dwell_time);
+		dprintf(PSTR("Current rate is: %lu dwell time: %lu\r\n"), srate, dtime);
 		return;
 	}
 	srate = atoul(argv[1]);
-	dprintf(PSTR("\r\nSCANRATE: set scan rate to %lu\r\n"), srate);
+	dtime = atoul(argv[2]);
+	dprintf(PSTR("\r\nSCANRATE: set scan rate to %lu - dwell time: %lu\r\n"), srate, dtime);
 	eeprom_write_dword(&scan_rate, srate);
+	eeprom_write_dword(&dwell_time, dtime);
 } 
 
 static void cmd_help(char **argv, uint8_t argc);
@@ -1057,7 +1061,7 @@ static void cmd_help(char **argv, uint8_t argc)
 
 #define MAX_PARAMS 8
 
-static void process_commands(void *unused)
+static void process_commands(void)
 {
 	static char *para[MAX_PARAMS];
 	static char buf[BUF_DATA_SIZE+1];
@@ -1096,7 +1100,7 @@ static void process_commands(void *unused)
 	
 }
 
-static void process_uart(void *unused)
+static void process_uart(void)
 {
 	static char buf[BUF_DATA_SIZE];
 	char *p;
@@ -1121,7 +1125,7 @@ static void process_uart(void *unused)
 		{
 			if(rb_linebuf_parse(&uart_rx_buf, buf, p - buf, true) == 0)
 			{
-				process_commands(NULL); /* process the queue */
+				process_commands(); /* process the queue */
 			}
 			p = buf;
 		}
@@ -1162,11 +1166,9 @@ static void adc_init(void)
 	PORTB &= ~(_BV(PB4) | _BV(PB5));
 	DIDR2 |= _BV(ADC11D) | _BV(ADC12D);
 
-
 	ADMUX = ADMUX_ADC11;
 	ADCSRB = ADCSRB_ADC11;	
 
-//	ADCSRA = _BV(ADEN);
 	ADCSRA = _BV(ADEN) | _BV(ADSC) | _BV(ADPS0) | _BV(ADPS1) | _BV(ADPS2);
 	_delay_us(125);
 
@@ -1312,34 +1314,27 @@ static void set_channel(uint16_t band, uint16_t channel, bool report)
 	ad9833_setvfo(m.freq_msb, m.freq_lsb, m.rev_msb, m.rev_lsb);
 }
 
-static void read_channel(void *data)
+static void read_channel(void)
 {
-	// static uint32_t last_change = 0;
 	static bool pending_band_change = false;
 	static bool pending_channel_change = true;
 	static uint16_t pending_channel = 0, pending_band = 0;
 	bool pending_change_now = false;
-//	uint32_t now;	
 	uint16_t c, b;
 	uint16_t new_channel = 0, new_band = 0;
 	
 	wdt_reset();
 	adc_avg_channel(&c, &b);			
-//	now = current_ts();
 
 	if(b < 30)
 		return;
 
 	/* noise or out of range */
-	if(lookup_band(b, &new_band) == false)
-	{
+	if(rb_unlikely(lookup_band(b, &new_band) == false))
 		return;
-	}
 	
-	if(lookup_channel(c, &new_channel) == false)
-	{
+	if(rb_unlikely(lookup_channel(c, &new_channel) == false))
 		return;
-	}
 
 	if((current_band == new_band) && (current_channel == new_channel))
 	{
@@ -1348,7 +1343,6 @@ static void read_channel(void *data)
 		pending_channel_change = false;
 		return;
 	}
-	
 
 	if((pending_band_change == false) && (current_band != new_band))
 	{
@@ -1363,7 +1357,6 @@ static void read_channel(void *data)
 		pending_channel = new_channel;
 		pending_change_now = true;
 	}
-
 
 	if(pending_change_now == true)
 		return;
@@ -1390,7 +1383,6 @@ static void read_channel(void *data)
 			pending_band_change = false;
 			current_channel = new_channel;
 		}
-	
 	}
 
 	wdt_reset();
@@ -1403,8 +1395,6 @@ static void read_channel(void *data)
 	} else {
 		stop_scan();
 	}
-
-
 
 	if(pending_channel_change == false || pending_band_change == false)
 	{
@@ -1422,7 +1412,6 @@ static void setup_linebuf(void)
 
 static uint16_t adc_avg(void);
 
-volatile bool is_squelched = false;
 
 static void setup_squelch(void)
 {
@@ -1436,11 +1425,9 @@ static void setup_squelch(void)
 		is_squelched = false;
 	else
 		is_squelched = true;
-
 }
 
 
-volatile bool is_txing = false;
 
 ISR(INT0_vect)
 {
@@ -1450,8 +1437,6 @@ ISR(INT0_vect)
 		is_squelched = true;
 }
 
-static uint16_t last_channel;
-static uint16_t last_band;
 
 static void stop_scan(void)
 {
@@ -1468,29 +1453,46 @@ static void start_scan(void)
 	if(scan_channel_ev == NULL)
 	{
 		dprintf(PSTR("start_scan\r\n"));
-		scan_channel_ev = rb_event_add(do_scan, NULL, eeprom_read_dword(&scan_rate), 0);
+		dtime = eeprom_read_dword(&dwell_time);
+		if(dtime == UINT32_MAX)
+			dtime = 2000;
+		scan_channel_ev = rb_event_add(do_scan, eeprom_read_dword(&scan_rate), 0);
 	}
 }
-static void do_scan(void *unused)
+
+static void do_scan(void)
 {
+	static uint32_t hangtime = 0;
+	static uint32_t last_jump = 0;
+	static uint16_t last_channel;
+	static uint16_t last_band;
+
 	struct memory_entry m;
 	uint16_t channel, band;
-	static uint32_t hangtime;
+	uint32_t ts;
+	
+	ts = current_ts();
+	
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		if(is_squelched == false)
-		{
-			hangtime = tick;
-			return;
-		}
+			hangtime = ts;
+
 		if(is_txing == true)
 		{
 			dprintf(PSTR("Stopped scanning due to TXing\r\n"));
 			return;
 		}
 	}
+
+	if(is_squelched == false)
+	{
+		if((last_jump + dtime) > ts)
+			return;
+		hangtime = 0;
+	} 
 	
-	if(hangtime + 2000 > current_ts())
+	if(hangtime + 2000 > ts)
 	{
 		led_on();
 		return;
@@ -1508,7 +1510,7 @@ static void do_scan(void *unused)
 	else
 		channel = last_channel + 1;
 	
-	
+	last_jump = ts;	
 	for(uint16_t i = channel; i < CHAN_MAX - 1; i++)
 	{
 		eeprom_read_block(&m, &bands[band][i], sizeof(m));
@@ -1516,19 +1518,13 @@ static void do_scan(void *unused)
 			continue;
 		last_channel = channel;
 		last_band = band;
-//		dprintf(PSTR("Jumping to band: %u channel: %u\r\n"), band, channel);
 		set_channel(band, channel, false);
 		return;	
 	}
 	channel = 1;
 	last_channel = 1;
-//	dprintf(PSTR("Jumping back to zero\r\n"));
 	set_channel(band, channel, false);
 }
-
-
-
-
 
 
 static void setup_ptt(void)
@@ -1567,7 +1563,6 @@ ISR(INT6_vect)
 	}
 }
 
-
 static void setup() 
 {
 	MCUSR &= ~_BV(WDRF); 
@@ -1577,6 +1572,7 @@ static void setup()
 	wdt_reset();
 	
 	DDRD |= _BV(PD1);
+	DDRF |= _BV(PF4) | _BV(PF5); // DDS amp PF4 - AD9833 PF5
 	led_on();
 	
 	cli();
@@ -1612,9 +1608,9 @@ static void setup()
  	adc_init();
  	dprintf(PSTR("Out of adc_init()\r\n"));
  	
-	read_channel_ev = rb_event_add(read_channel, NULL, 200, 0);
-	rb_event_add(process_uart, NULL, 50, 0);
-	rb_event_add(process_commands, NULL, 20, 0);
+	read_channel_ev = rb_event_add(read_channel, 200, 0);
+	rb_event_add(process_uart, 50, 0);
+	rb_event_add(process_commands, 20, 0);
 	led_on();
 	dprintf(PSTR("setup finished\r\n"));	
 }
@@ -1622,9 +1618,6 @@ static void setup()
 int main(void)
 {
 	setup();
-//	cmd_listchan(NULL, 0);
-//	cmd_listadc(NULL, 0);
-//	cmd_adcon(NULL, 0);
 	dprintf(PSTR("starting event loop\r\n"));
 	while(1)
 	{
