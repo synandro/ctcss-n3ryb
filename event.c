@@ -71,7 +71,7 @@ static void event_free(struct ev_entry *ev)
 }
 
 struct ev_entry *
-rb_event_add(EVH * func, void *arg, uint32_t frequency, uint16_t count)
+rb_event_add(EVH * func, uint32_t frequency, uint16_t count)
 {
 	struct ev_entry *ev;
 	uint32_t now;
@@ -82,7 +82,6 @@ rb_event_add(EVH * func, void *arg, uint32_t frequency, uint16_t count)
 		return NULL; 
 
 	ev->func = func;
-	ev->arg = arg;
 	ev->count = count;
 	if(count > 0)
 		ev->counter = true;
@@ -141,12 +140,13 @@ void rb_event_run(void)
 
 	now = current_ts();
 	/* reset the counter before it gets anywhere near close to overflow */	
-	if(now > (INT32_MAX / 2)) 
+	if(rb_unlikely(now > (INT32_MAX / 2)))
 	{
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 		{
 			rb_set_back_events((INT32_MAX / 2) + 1000);
 			tick = tick - (INT32_MAX / 2);
+			now = tick;
 		}
 	}
 
@@ -155,7 +155,7 @@ void rb_event_run(void)
 		ev = ptr->data;
 		if(ev->when <= now)
 		{
-			ev->func(ev->arg);
+			ev->func();
 			
 			if((ev->counter == true && --ev->count == 0) || ev->frequency == 0)
 			{

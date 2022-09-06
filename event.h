@@ -7,13 +7,12 @@
 #include <util/atomic.h>
 
 
-typedef void EVH(void *);
+typedef void EVH(void);
 
 struct ev_entry
 {
         rb_dlink_node node;
         EVH *func;
-        void *arg;
         int32_t frequency;
         int32_t when;
         uint16_t count; // counts back to zero, frees then
@@ -21,7 +20,7 @@ struct ev_entry
         bool used;
 };
 
-struct ev_entry * rb_event_add(EVH * func, void *arg, uint32_t frequency, uint16_t count);
+struct ev_entry * rb_event_add(EVH * func, uint32_t frequency, uint16_t count);
 
 void rb_event_init(void);
 void rb_event_run(void);
