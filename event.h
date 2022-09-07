@@ -27,7 +27,7 @@ void rb_event_run(void);
 void rb_event_delete(struct ev_entry *ev);
 
 
-extern volatile uint32_t tick;
+extern uint32_t tick;
 
 static inline __attribute__((always_inline)) uint32_t current_ts(void)
 {
