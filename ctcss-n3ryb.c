@@ -35,8 +35,6 @@
 #include <util/setbaud.h>
 #include <stdio.h>
 
-#define dprintf(...) printf_P(__VA_ARGS__)
-
 
 
 #include "tools.h"
