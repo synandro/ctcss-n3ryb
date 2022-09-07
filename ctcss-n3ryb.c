@@ -19,10 +19,6 @@
 
 
 
-#define CHAN_VFO 0
-#define CHAN_SCAN 11
-#define CHAN_MAX 12
-#define BAND_MAX 8 
 #define ADC_MAX  1024 /* adc values above this are discarded as invalid */
 
 #include <stdint.h>
@@ -47,7 +43,7 @@
 #include "ad9833.h"
 #include "event.h"
 #include "pwm-sine.h"
-
+#include "memories.h"
 
 buf_head_t uart_rx_buf;
 /* buf_head_t uart_tx_buf; */
@@ -57,14 +53,12 @@ uint16_t current_channel;
 uint32_t scan_rate EEMEM = 500;
 uint32_t dwell_time EEMEM = 2000;
 uint32_t dtime = 2000; /* so we don't need to keep loading dwell_time from eeprom */
+uint32_t srate = 500;
+uint32_t scan_count = 0;
 
 volatile bool is_split = false;
 volatile bool is_squelched = false;
 volatile bool is_txing = false;
-
-
-
-
 
 
 struct ev_entry *read_channel_ev; 
@@ -75,263 +69,7 @@ static void set_channel(uint16_t band, uint16_t channel, bool report);
 static void do_scan(void);
 static void stop_scan(void);
 static void start_scan(void);
-
-enum {
-	 CTCSS_NONE,
-	 CTCSS_67_0,
-	 CTCSS_69_3,
-	 CTCSS_71_9,
-	 CTCSS_74_4,
-	 CTCSS_77_0,
-	 CTCSS_79_7,
-	 CTCSS_82_5,
-	 CTCSS_85_4,
-	 CTCSS_88_5,
-	 CTCSS_91_5,
-	 CTCSS_94_8,
-	 CTCSS_97_4,
-	 CTCSS_100_0,
-	 CTCSS_103_5,
-	 CTCSS_107_2,
-	 CTCSS_110_9,
-	 CTCSS_114_8,
-	 CTCSS_118_8,
-	 CTCSS_123_0,
-	 CTCSS_127_3,
-	 CTCSS_131_8,
-	 CTCSS_136_5,
-	 CTCSS_141_3,
-	 CTCSS_146_2,
-	 CTCSS_151_4,
-	 CTCSS_156_7,
-	 CTCSS_162_2,
-	 CTCSS_167_9,
-	 CTCSS_173_8,
-	 CTCSS_179_9,
-	 CTCSS_186_2,
-	 CTCSS_192_8,
-	 CTCSS_203_5,
-	 CTCSS_206_5,
-	 CTCSS_210_7,
-	 CTCSS_218_1,
-	 CTCSS_225_7,
-	 CTCSS_229_1,
-	 CTCSS_233_6,
-	 CTCSS_241_8,
-	 CTCSS_250_3,
-	 CTCSS_254_1,
-};
-
-
-const uint16_t ctcss_tone_table[] PROGMEM = {
-	0,  /* HZ_NONE */
-	536,  /* HZ_67_0 */
-	554,  /* HZ_69_3 */
-	575,  /* HZ_71_9 */
-	595,  /* HZ_74_4 */
-	616,  /* HZ_77_0 */
-	637,  /* HZ_79_7 */
-	660,  /* HZ_82_5 */
-	683,  /* HZ_85_4 */
-	708,  /* HZ_88_5 */
-	732,  /* HZ_91_5 */
-	758,  /* HZ_94_8 */
-	779,  /* HZ_97_4 */
-	800,  /* HZ_100_0 */
-	830,  /* HZ_103_5 */
-	857,  /* HZ_107_2 */
-	887,  /* HZ_110_9 */
-	918,  /* HZ_114_8 */
-	953,  /* HZ_118_8 */
-	984,  /* HZ_123_0 */
-	1018,  /* HZ_127_3 */
-	1054,  /* HZ_131_8 */
-	1091,  /* HZ_136_5 */
-	1130,  /* HZ_141_3 */
-	1165,  /* HZ_146_2 */
-	1211,  /* HZ_151_4 */
-	1253,  /* HZ_156_7 */
-	1297,  /* HZ_162_2 */
-	1345,  /* HZ_167_9 */
-	1390,  /* HZ_173_8 */
-	1441,  /* HZ_179_9 */
-	1489,  /* HZ_186_2 */
-	1541,  /* HZ_192_8 */
-	1627,  /* HZ_203_5 */
-	1651,  /* HZ_206_5 */
-	1685,  /* HZ_210_7 */
-	1744,  /* HZ_218_1 */
-	1805,  /* HZ_225_7 */
-	1832,  /* HZ_229_1 */
-	1868,  /* HZ_233_6 */
-	1934,  /* HZ_241_8 */
-	2001,  /* HZ_250_3 */
-	2031,  /* HZ_254_1 */
-};
-
-
-
-struct memory_entry {
-	uint16_t freq_msb;
-	uint16_t freq_lsb;
-	uint16_t rev_msb;
-	uint16_t rev_lsb;
-	uint8_t ctcss_tone;
-	bool skip;
-};
-
-/* So we are using a precomputed frequency table for the LSB and MSB half of the frequency
- * this all assumes that the clock on the ad9833 is running at 25MHz
- * 
-	uint32_t freq_data = ((uint64_t)frequency << 28) / AD9833_FREQ;
-	uint16_t freq_MSB = (freq_data >> 14);  //| FREQ0;
-	uint16_t freq_LSB = (freq_data & 0x3FFF); //| FREQ0;
-
- */
-
-/* band 0 - 144
- * band 1 - 144.5
- * band 2 - 145.0
- * band 3 - 145.5
- * band 4 - 146.0
- * band 5 - 146.5
- * band 6 - 147.0
- * band 7 - 147.5
-
-*/
-
-struct memory_entry bands[BAND_MAX][CHAN_MAX] EEMEM = {
-
-	{
-		/* band 0 - 144-144.49 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 5373, .freq_lsb = 15597, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 144.200 */
-		{ .ctcss_tone = 0, .freq_msb = 5498, .freq_lsb = 7707, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 144.390 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-	},	
-	{
-		/* band 1 - 144.5 - 145.0 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-#if 1
-//		{ .ctcss_tone = CTCSS_107_2, .freq_msb = 5655, .freq_lsb = 12399, .rev_msb = 5262, .rev_lsb = 8860, .skip = 0 }, /* 145.130 "Haymarket N3KL vfo: 136.500000 */
-		{ .ctcss_tone = CTCSS_179_9, .freq_msb = 5668, .freq_lsb = 14155, .rev_msb = 5275, .rev_lsb = 10616, .skip = 0 }, /* 145.150 "Martinsburg W8ORS vfo: 136.500000 */
-		{ .ctcss_tone = CTCSS_118_8, .freq_msb = 5695, .freq_lsb = 1284, .rev_msb = 5301, .rev_lsb = 14129, .skip = 0 }, /* 145.190 "Moorefield N8VAA vfo: 136.500000 */
-		{ .ctcss_tone = CTCSS_141_3, .freq_msb = 5708, .freq_lsb = 3040, .rev_msb = 5314, .rev_lsb = 15885, .skip = 0 }, /* 145.210 "Front Royal High Knob Mountain" vfo: 136.500000 */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5747, .freq_lsb = 8309, .rev_msb = 5354, .rev_lsb = 4771, .skip = 0 }, /* 145.270 "Meyersdale Hays Mill Fire Tower" vfo: 136.500000 */
-		{ .ctcss_tone = CTCSS_146_2, .freq_msb = 5826, .freq_lsb = 2464, .rev_msb = 5432, .rev_lsb = 15309, .skip = 0 }, /* 145.390 "Winchester North Mountain KG4Y vfo: 136.500000 */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5865, .freq_lsb = 7733, .rev_msb = 5472, .rev_lsb = 4194, .skip = 0 }, /* 145.450 "Oldtown Warrior Mountain WMA W3YMW" vfo: 136.500000 */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5891, .freq_lsb = 11245, .rev_msb = 5498, .rev_lsb = 7707, .skip = 0 }, /* 145.490 "Bedford K3NQT vfo: 136.500000 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-
-#endif
-	},	
-	{
-		/* band 2 - 145.0 - 145.49 */ 	
-
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-//		{ .ctcss_tone = CTCSS_107_2, .freq_msb = 5328, .freq_lsb = 1258, .rev_msb = 4934, .rev_lsb = 14103, .skip = 0 }, /* 145.130 "Haymarket N3KL vfo: 137.000000 */
-		{ .ctcss_tone = CTCSS_179_9, .freq_msb = 5341, .freq_lsb = 3014, .rev_msb = 4947, .rev_lsb = 15859, .skip = 0 }, /* 145.150 "Martinsburg W8ORS vfo: 137.000000 */
-		{ .ctcss_tone = CTCSS_118_8, .freq_msb = 5367, .freq_lsb = 6527, .rev_msb = 4974, .rev_lsb = 2988, .skip = 0 }, /* 145.190 "Moorefield N8VAA vfo: 137.000000 */
-		{ .ctcss_tone = CTCSS_141_3, .freq_msb = 5380, .freq_lsb = 8283, .rev_msb = 4987, .rev_lsb = 4744, .skip = 0 }, /* 145.210 "Front Royal High Knob Mountain" vfo: 137.000000 */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5419, .freq_lsb = 13552, .rev_msb = 5026, .rev_lsb = 10013, .skip = 0 }, /* 145.270 "Meyersdale Hays Mill Fire Tower" vfo: 137.000000 */
-		{ .ctcss_tone = CTCSS_146_2, .freq_msb = 5498, .freq_lsb = 7707, .rev_msb = 5105, .rev_lsb = 4168, .skip = 0 }, /* 145.390 "Winchester North Mountain KG4Y vfo: 137.000000 */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5537, .freq_lsb = 12976, .rev_msb = 5144, .rev_lsb = 9437, .skip = 0 }, /* 145.450 "Oldtown Warrior Mountain WMA W3YMW" vfo: 137.000000 */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5564, .freq_lsb = 104, .rev_msb = 5170, .rev_lsb = 12949, .skip = 0 }, /* 145.490 "Bedford K3NQT vfo: 137.000000 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-//		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-	},
-	{	
-		/* band 3 - 145.5 - 145.99 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-	},
-	{	
-		/* band 4 - 146.0 - 146.6 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5731, .freq_lsb = 2018, .rev_msb = 5337, .rev_lsb = 14863, .skip = 0 }, /* 146.745 "Berkeley Springs Cacapon Mountain KK3L" */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5760, .freq_lsb = 10066, .rev_msb = 5367, .rev_lsb = 6527, .skip = 0 }, /* 146.790 "Clearville Martin Hill K3NQT */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5770, .freq_lsb = 7287, .rev_msb = 5377, .rev_lsb = 3748, .skip = 0 }, /* 146.805 "Oakland KB8NUF */
-		{ .ctcss_tone = CTCSS_146_2, .freq_msb = 5780, .freq_lsb = 4508, .rev_msb = 5387, .rev_lsb = 969, .skip = 0 }, /* 146.820 "Winchester Great North Mountain W4RKC" */
-		{ .ctcss_tone = CTCSS_77_0, .freq_msb = 5799, .freq_lsb = 15335, .rev_msb = 5406, .rev_lsb = 11796, .skip = 0 }, /* 146.850 "Charles Town WA4TXE */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5819, .freq_lsb = 9777, .rev_msb = 5426, .rev_lsb = 6239, .skip = 0 }, /* 146.880 "Midland Dan's Mountain W3YMW */
-		{ .ctcss_tone = CTCSS_100_0, .freq_msb = 5858, .freq_lsb = 15047, .rev_msb = 5465, .rev_lsb = 11508, .skip = 0 }, /* 146.940 "Clear Spring Fairview Mountain W3CWC" */
-		{ .ctcss_tone = CTCSS_131_8, .freq_msb = 5652, .freq_lsb = 7864, .rev_msb = 5259, .rev_lsb = 4325, .skip = 1 }, /* 146.625 "New Market Luray Caverns N4YSA" */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-	},
-
-	{
-		/* band 5 - 146.5 - 146.99 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 , .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 5255, .freq_lsb = 16174, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 146.520 simplex vfo: 138.500000 */
-		{ .ctcss_tone = 0, .freq_msb = 5190, .freq_lsb = 7392, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 146.420 simplex vfo: 138.500000 */
-		{ .ctcss_tone = 0, .freq_msb = 5203, .freq_lsb = 9148, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 146.440 simplex vfo: 138.500000 */
-		{ .ctcss_tone = 0, .freq_msb = 5216, .freq_lsb = 10905, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 146.460 simplex vfo: 138.500000 */
-		{ .ctcss_tone = 0, .freq_msb = 5229, .freq_lsb = 12661, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 146.480 simplex vfo: 138.500000 */
-		{ .ctcss_tone = 0, .freq_msb = 5242, .freq_lsb = 14417, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 146.500 simplex vfo: 138.500000 */
-		{ .ctcss_tone = 0, .freq_msb = 5269, .freq_lsb = 1546, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 146.540 simplex vfo: 138.500000 */
-		{ .ctcss_tone = 0, .freq_msb = 5295, .freq_lsb = 5059, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 146.580 simplex vfo: 138.500000 */
-		{ .ctcss_tone = 0, .freq_msb = 5308, .freq_lsb = 6815, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 146.600 simplex vfo: 138.500000 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0 , .skip = 0 },
-	},
-	{
-		/* band 6 - 147.00 - 147.5*/
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = CTCSS_146_2, .freq_msb = 5439, .freq_lsb = 7995, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 147.300 "Bluemont Blue Ridge WA4TSC */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5409, .freq_lsb = 16331, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 147.255 "Martinsburg WB8YZV */
-		{ .ctcss_tone = CTCSS_103_5, .freq_msb = 5429, .freq_lsb = 10774, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 147.285 "Circleville Spruce Knob N8HON */
-		{ .ctcss_tone = CTCSS_131_8, .freq_msb = 5449, .freq_lsb = 5216, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 147.315 "Basye Great North Mountain K4MRA" */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5468, .freq_lsb = 16043, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 147.345 "Clear Spring K3MAD */
-		{ .ctcss_tone = CTCSS_127_3, .freq_msb = 5478, .freq_lsb = 13264, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 147.360 "Skyline K7SOB */
-		{ .ctcss_tone = CTCSS_100_0, .freq_msb = 5321, .freq_lsb = 8572, .rev_msb = 0, .rev_lsb = 0, .skip = 0 }, /* 147.120 "Chambersburg Clark's Knob W3ACH" */
-		{ .ctcss_tone = CTCSS_167_9, .freq_msb = 5341, .freq_lsb = 3014, .rev_msb = 0, .rev_lsb = 0 , .skip = 0 }, /* 147.150 "Blue Knob Ski Resort KB3KWD" */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-
-	}, 
-	{
-		/* band 7 - 147.5 - 148 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = CTCSS_146_2, .freq_msb = 5111, .freq_lsb = 13238, .rev_msb = 5505, .rev_lsb = 393, .skip = 0 }, /* 147.300 "Bluemont Blue Ridge WA4TSC"   */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5082, .freq_lsb = 5190, .rev_msb = 5475, .rev_lsb = 8729, .skip = 0 }, /* 147.255 "Martinsburg WB8YZV" */
-		{ .ctcss_tone = CTCSS_103_5, .freq_msb = 5101, .freq_lsb = 16016, .rev_msb = 5495, .rev_lsb = 3171, .skip = 0 }, /* 147.285 "Circleville Spruce Knob N8HON" */
-		{ .ctcss_tone = CTCSS_131_8, .freq_msb = 5121, .freq_lsb = 10459, .rev_msb = 5514, .rev_lsb = 13998, .skip = 0 }, /* 147.315 Basye Great North Mountain K4MRA" vfo: 139.500000 */
-		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5141, .freq_lsb = 4902, .rev_msb = 5534, .rev_lsb = 8441, .skip = 0 }, /* 147.345 Clear Spring K3MAD" vfo: 139.500000 */
-		{ .ctcss_tone = CTCSS_127_3, .freq_msb = 5151, .freq_lsb = 2123, .rev_msb = 5544, .rev_lsb = 5662, .skip = 0 }, /* 147.360 Skyline K7SOB" vfo: 139.500000 */
-		{ .ctcss_tone = CTCSS_100_0, .freq_msb = 4993, .freq_lsb = 13814, .rev_msb = 5387, .rev_lsb = 969, .skip = 0 }, /* 147.120 Chambersburg Clark's Knob W3ACH vfo: 139.500000 */
-		{ .ctcss_tone = CTCSS_167_9, .freq_msb = 5013, .freq_lsb = 8257, .rev_msb = 5406, .rev_lsb = 11796, .skip = 0 }, /* 147.150 Blue Knob Ski Resort KB3KWD vfo: 139.500000 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },	
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .rev_msb = 0, .rev_lsb = 0, .skip = 0 },
-	}
-};
-
+extern struct memory_entry bands[BAND_MAX][CHAN_MAX] EEMEM;
 
 
 
@@ -365,7 +103,7 @@ CMD_LISTADC: channel = 11, .min = 670, .max = 700
 #ifdef ADC_IN_EEPROM
 #define ADC_MEM EEMEM
 #else 
-#define ADC_MEM PROGMEM
+#define ADC_MEM 
 #endif
 
 
@@ -413,7 +151,7 @@ static uint32_t atoul(const char *num)
 	uint32_t val = 0;
 	while (*num && (*num >= '0' && *num <= '9'))
 	{
-	    	val = (val * 10) + *num - '0';
+		val = (val * 10) + (uint8_t)(*num - '0');
 	    	num++;
 	}
 	return val;
@@ -424,7 +162,7 @@ static uint8_t atous(const char *num)
 	uint8_t val = 0;
 	while (*num && (*num >= '0' && *num <= '9'))
 	{
-	    	val = (val * 10) + *num - '0';
+	    	val = (val * 10) + (uint8_t)(*num - '0');
 	    	num++;
 	}
 	return val;
@@ -435,7 +173,7 @@ static uint16_t atoui(const char *num)
 	uint16_t val = 0;
 	while (*num && (*num >= '0' && *num <= '9'))
 	{
-	    	val = (val * 10) + *num - '0';
+	    	val = (val * 10) + (uint8_t)(*num - '0');
 	    	num++;
 	}
 	return val;
@@ -567,12 +305,14 @@ static void spi_init(void)
 static inline void ad9833_sselect_high(void)
 {
 	PORTF |= _BV(PF7);
+	wdt_reset();
 	_delay_us(40);
 }
 
 static inline void ad9833_sselect_low(void)
 {
 	PORTF &= ~_BV(PF7);
+	wdt_reset();
 	_delay_us(10);
 }
 
@@ -656,7 +396,12 @@ static void ad9833_setvfo(uint16_t freq_msb, uint16_t freq_lsb, uint16_t rev_msb
 	SPI_write16(AD9833_B28);
 	SPI_write16(freq_lsb | AD9833_D14); /* D14 is freq0 */
 	SPI_write16(freq_msb | AD9833_D14);
-
+	
+	if(is_split == false)
+	{
+		rev_lsb = freq_lsb;
+		rev_msb = freq_msb;
+	}
 	SPI_write16(AD9833_B28);
 	SPI_write16(rev_lsb | AD9833_D15);
 	SPI_write16(rev_msb | AD9833_D15);
@@ -701,8 +446,11 @@ static void __attribute__((noinline)) set_freq(const char *f)
 	SPI_write16(AD9833_B28);
 	SPI_write16(freq_lsb | AD9833_D14); /* D14 is freq0 */
 	SPI_write16(freq_msb | AD9833_D14);
-#if 0
 	SPI_write16(AD9833_B28);
+	SPI_write16(freq_lsb | AD9833_D15); /* D15 is freq1 */
+	SPI_write16(freq_msb | AD9833_D15);
+
+#if 0
 	freq_data = ((uint64_t)(frequency + 1200) << 28) / AD9833_FREQ;
 	freq_msb = (freq_data >> 14);
 	freq_lsb = (freq_data & 0x3FFF);
@@ -839,7 +587,8 @@ static void cmd_listadc(char **argv, uint8_t argc)
 #ifdef ADC_IN_EEPROM
 		eeprom_read_block(&range, &band_switch_range[band], sizeof(range));
 #else
-		memcpy_P(&range, &band_switch_range[band], sizeof(range));
+		range[0] = band_switch_range[band][0];
+		range[1] = band_switch_range[band][1];
 #endif
 		dprintf(PSTR("CMD_LISTADC: band = %u, .min = %u, .max = %u \r\n"), band, range[0], range[1]);
 	}
@@ -850,7 +599,8 @@ static void cmd_listadc(char **argv, uint8_t argc)
 #ifdef ADC_IN_EEPROM
 		eeprom_read_block(&range, &channel_switch_range[channel], sizeof(range));
 #else
-		memcpy_P(&range, &channel_switch_range[channel], sizeof(range));
+		range[0] = channel_switch_range[channel][0];
+		range[1] = channel_switch_range[channel][1];
 #endif
 		dprintf(PSTR("CMD_LISTADC: channel = %u, .min = %u, .max = %u \r\n"), channel, range[0], range[1]);
 	}
@@ -869,10 +619,11 @@ static void cmd_listchan(char **argv, uint8_t argc)
 		{
 			wdt_reset();
 			eeprom_read_block(&m, &bands[band][channel], sizeof(m));
-			dprintf(PSTR("CMD_LISTCHAN: band = %u, channel = %u, .ctcss_tone = %u, .freq_msb = %u, .freq_lsb = %u, .rev_msb = %u, .rev_lsb = %u\r\n"), band, channel, m.ctcss_tone, m.freq_msb, m.freq_lsb, m.rev_msb, m.rev_lsb);
+			dprintf(PSTR("CMD_LISTCHAN: band = %u, channel = %u, .m.skip = %u, .ctcss_tone = %u, .freq_msb = %u, .freq_lsb = %u, .rev_msb = %u, .rev_lsb = %u\r\n"), band, channel, m.skip, m.ctcss_tone, m.freq_msb, m.freq_lsb, m.rev_msb, m.rev_lsb);
 		}
 	
 	}
+	wdt_reset();
 
 }
 
@@ -903,8 +654,11 @@ static void cmd_savechan(char **argv, uint8_t argc)
 	m.ctcss_tone = atoui(argv[5]);
 	
 	dprintf("SAVECHAN: Write: band: %u, channel: %u msb:%u lsb:%u tone:%u",band, channel, m.freq_msb, m.freq_lsb, m.ctcss_tone);
+	wdt_reset();
 	eeprom_write_block(&m, &bands[band][channel], sizeof(m));
+	wdt_reset();
 	eeprom_busy_wait();
+	wdt_reset();
 	eeprom_read_block(&m, &bands[band][channel], sizeof(m));
 	dprintf("SAVECHAN: Read: band: %u, channel: %u msb:%u lsb:%u tone:%u",band, channel, m.freq_msb, m.freq_lsb, m.ctcss_tone);
 }
@@ -992,15 +746,17 @@ static void cmd_reboot(char **argv, uint8_t argc)
 static void cmd_status(char **argv, uint8_t argc)
 {
 	dprintf(PSTR("\r\nUptime: %lu, current_band: %u current_channel: %u ctcss: %u sin_counter: %u\r\n"), current_ts(), current_band, current_channel, cur_mult, sin_counter);
+	dprintf(PSTR("Scanning: %u scan rate: %lu, dwell: %lu scan_count: %lu\r\n"), scan_channel_ev != NULL ? 1 : 0,  eeprom_read_dword(&scan_rate), eeprom_read_dword(&dwell_time), scan_count); 
 }
 
 static void cmd_scanrate(char **argv, uint8_t argc)
 {
-	uint32_t srate;
 	if(argc != 3)
 	{
+		wdt_reset();
 		dprintf(PSTR("\r\nSCANRATE [scanrate] [dwell time] (in ms)\r\n"));
 		srate = eeprom_read_dword(&scan_rate);
+		wdt_reset();
 		dtime = eeprom_read_dword(&dwell_time);
 		dprintf(PSTR("Current rate is: %lu dwell time: %lu\r\n"), srate, dtime);
 		return;
@@ -1008,8 +764,11 @@ static void cmd_scanrate(char **argv, uint8_t argc)
 	srate = atoul(argv[1]);
 	dtime = atoul(argv[2]);
 	dprintf(PSTR("\r\nSCANRATE: set scan rate to %lu - dwell time: %lu\r\n"), srate, dtime);
+	wdt_reset();
 	eeprom_write_dword(&scan_rate, srate);
+	wdt_reset();
 	eeprom_write_dword(&dwell_time, dtime);
+	
 } 
 
 static void cmd_help(char **argv, uint8_t argc);
@@ -1066,11 +825,10 @@ static void process_commands(void)
 	static char *para[MAX_PARAMS];
 	static char buf[BUF_DATA_SIZE+1];
 
-	int result; 
 	uint8_t parc;
 	uint8_t count = 0;
 
-	while(++count < 128 && ((result = rb_linebuf_get(&uart_rx_buf, buf, BUF_DATA_SIZE, false, false)) > 0))
+	while(++count < 128 && ((rb_linebuf_get(&uart_rx_buf, buf, BUF_DATA_SIZE, false, false)) > 0))
 	{	
 		wdt_reset();
 		parc = rb_string_to_array(buf, para, MAX_PARAMS);
@@ -1078,7 +836,7 @@ static void process_commands(void)
 		{
 			continue;
 		}
-		for(int i = 0; commands[i].cmd != NULL; i++)
+		for(uint8_t i = 0; commands[i].cmd != NULL; i++)
 		{
 			if(commands[i].iscat == true)
 			{
@@ -1106,7 +864,7 @@ static void process_uart(void)
 	char *p;
 	uint16_t count = 0;
 
-
+	wdt_reset();
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		if(usart1_int == false && !bit_is_set(UCSR1A, RXC1))
@@ -1219,15 +977,23 @@ static void adc_avg_channel(uint16_t *channel, uint16_t *band)
 
 static bool lookup_channel(uint16_t adc_val, uint16_t *channel)
 {
-	static uint16_t channel_range[CHAN_MAX][2];
-	uint8_t i; 
 
-	memcpy_P(&channel_range, &channel_switch_range, sizeof(channel_range));
-//	eeprom_read_block(&channel_range, &channel_switch_range, sizeof(channel_range));
-	for(i = 0; i < CHAN_MAX; i++)
+//	memcpy_P(&channel_range, &channel_switch_range, sizeof(channel_range));
+#ifdef ADC_IN_EEPROM
+	static uint16_t channel_range[CHAN_MAX][2];
+	eeprom_read_block(&channel_range, &channel_switch_range, sizeof(channel_range));
+#endif
+
+	for(uint8_t i = 0; i < CHAN_MAX; i++)
 	{
-		uint16_t c_min = channel_range[i][0];
-		uint16_t c_max =  channel_range[i][1];
+		uint16_t c_min, c_max;
+#ifdef ADC_IN_EEPROM		
+		c_min = channel_range[i][0];
+		c_max =  channel_range[i][1];
+#else
+		c_min = channel_switch_range[i][0];
+		c_max = channel_switch_range[i][1];
+#endif
 		
 		if((c_min > ADC_MAX) || (c_max > ADC_MAX))
 			continue;
@@ -1244,15 +1010,21 @@ static bool lookup_channel(uint16_t adc_val, uint16_t *channel)
 
 static bool lookup_band(uint16_t adc_val, uint16_t *band)
 {
+#ifdef ADC_IN_EEPROM
 	static uint16_t band_range[BAND_MAX][2];
-	uint8_t i;
-
-	memcpy_P(&band_range, &band_switch_range, sizeof(band_range));	
+//	memcpy_P(&band_range, &band_switch_range, sizeof(band_range));	
 //	eeprom_read_block(&band_range, &band_switch_range, sizeof(band_range));
-	for(i = 0; i < BAND_MAX; i++)
+#endif
+	for(uint8_t i = 0; i < BAND_MAX; i++)
 	{
-		uint16_t b_min =  band_range[i][0];
-		uint16_t b_max = band_range[i][1];
+		uint16_t b_min, b_max;
+#ifdef ADC_IN_EEPROM
+		b_min =  band_range[i][0];
+		b_max = band_range[i][1];
+#else
+		b_min = band_switch_range[i][0];
+		b_max = band_switch_range[i][1];
+#endif
 
 		if((adc_val >= b_min) && adc_val <= b_max)
 		{
@@ -1267,7 +1039,7 @@ static bool lookup_band(uint16_t adc_val, uint16_t *band)
 
 static void set_channel(uint16_t band, uint16_t channel, bool report)
 {
-	struct memory_entry m;
+	static struct memory_entry m;
 		
 	/* band is zero indexed, channel is indexed on 1, (zero being the vfo channel) */
 	if(band > BAND_MAX - 1 || channel > CHAN_MAX)
@@ -1279,13 +1051,14 @@ static void set_channel(uint16_t band, uint16_t channel, bool report)
 	if(channel == CHAN_VFO)
 	{
 		dprintf(PSTR("set_channel: vfo selected, turning DDS amp off\r\n"));
-//		rb_event_add(blink1_cb, NULL, 100, 12);
 		ad9833_shutdown();
 		return;
 	}
 	eeprom_read_block(&m, &bands[band][channel], sizeof(m));
 
 	wdt_reset();
+	
+#if 0	
 	if(m.freq_lsb == UINT16_MAX)
 		m.freq_lsb = 0;
 	
@@ -1294,22 +1067,25 @@ static void set_channel(uint16_t band, uint16_t channel, bool report)
 	
 	if(m.ctcss_tone == UINT8_MAX)
 		m.ctcss_tone = 0;
-
+#endif
 	if(report)
 		dprintf(PSTR("set_channel: band: %u channel: %u - %u %u - ctcss frequency: %u\r\n"),  band, channel, m.freq_msb, m.freq_lsb, m.ctcss_tone);
 
-	if(m.ctcss_tone > (sizeof(ctcss_tone_table) / sizeof(uint16_t)))
+	if(m.freq_msb == 0 && m.freq_lsb == 0)
+	{
+		if(report)
+			dprintf(PSTR("set_channel: frequency is zero, turning DDS off and turning off CTCSS tone\r\n"));
+		cur_mult = 0;
+		ad9833_shutdown();
+		return;
+	} 
+
+	if(m.ctcss_tone >= CTCSS_LAST)
 	{
 		cur_mult = 0;
 	} else
 		cur_mult = pgm_read_word(&ctcss_tone_table[m.ctcss_tone]);
 	
-	if(m.freq_msb == 0 && m.freq_lsb == 0)
-	{
-		dprintf(PSTR("set_channel: frequency is zero, turning DDS off\r\n"));
-		ad9833_shutdown();
-		return;
-	} 
 
 	ad9833_setvfo(m.freq_msb, m.freq_lsb, m.rev_msb, m.rev_lsb);
 }
@@ -1324,10 +1100,11 @@ static void read_channel(void)
 	uint16_t new_channel = 0, new_band = 0;
 	
 	wdt_reset();
-	adc_avg_channel(&c, &b);			
 
-	if(b < 30)
+	if(is_txing == true)
 		return;
+
+	adc_avg_channel(&c, &b);			
 
 	/* noise or out of range */
 	if(rb_unlikely(lookup_band(b, &new_band) == false))
@@ -1396,6 +1173,8 @@ static void read_channel(void)
 		stop_scan();
 	}
 
+	
+	
 	if(pending_channel_change == false || pending_band_change == false)
 	{
 		set_channel(current_band, current_channel, true);
@@ -1452,29 +1231,25 @@ static void start_scan(void)
 {
 	if(scan_channel_ev == NULL)
 	{
-		dprintf(PSTR("start_scan\r\n"));
-		dtime = eeprom_read_dword(&dwell_time);
-		if(dtime == UINT32_MAX)
-			dtime = 2000;
-		scan_channel_ev = rb_event_add(do_scan, eeprom_read_dword(&scan_rate), 0);
+		dprintf(PSTR("start_scan: rate: %lu dwell time: %lu\r\n"), srate, dtime);
+		scan_channel_ev = rb_event_add(do_scan, srate, 0);
 	}
 }
 
 static void do_scan(void)
 {
-	static uint32_t hangtime = 0;
-	static uint32_t last_jump = 0;
+	static uint32_t hangtime;
+	static uint32_t last_jump;
 	static uint16_t last_channel;
 	static uint16_t last_band;
 
-	struct memory_entry m;
+	static struct memory_entry m;
 	uint16_t channel, band;
 	uint32_t ts;
 	
-	ts = current_ts();
-	
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
+		ts = tick; 
 		if(is_squelched == false)
 			hangtime = ts;
 
@@ -1487,6 +1262,7 @@ static void do_scan(void)
 
 	if(is_squelched == false)
 	{
+		led_on();
 		if((last_jump + dtime) > ts)
 			return;
 		hangtime = 0;
@@ -1509,23 +1285,29 @@ static void do_scan(void)
 		channel = 1;
 	else
 		channel = last_channel + 1;
-	
-	last_jump = ts;	
+
+	last_jump = ts;
+
+	scan_count++;
 	for(uint16_t i = channel; i < CHAN_MAX - 1; i++)
 	{
 		eeprom_read_block(&m, &bands[band][i], sizeof(m));
-		if((m.freq_msb == 0 && m.freq_lsb == 0) || (m.skip == 1))
+		
+		if(m.skip == true)
 			continue;
+
+		if(m.freq_msb == 0 && m.freq_lsb == 0)
+			continue;
+
 		last_channel = channel;
 		last_band = band;
-		set_channel(band, channel, false);
+		set_channel(band, i, false);
 		return;	
 	}
 	channel = 1;
 	last_channel = 1;
 	set_channel(band, channel, false);
 }
-
 
 static void setup_ptt(void)
 {
@@ -1539,23 +1321,28 @@ static void setup_ptt(void)
 
 ISR(INT6_vect)
 {
+	bool was_txing = is_txing;
+
+	if(bit_is_clear(PINE, PE6))
+		is_txing = false;
+	else
+		is_txing = true;
+
 	if(is_split == false)
 		return;
 
-	if(bit_is_clear(PINE, PE6) && is_txing == true)
+	if(is_txing == false && was_txing == true)
 	{
 		dprintf(PSTR("Switching to FREQ0 - RX\r\n"));
-		is_txing = false;
 		ad9833_sselect_low();
 		SPI_write16(AD9833_FSELECT0);
 		ad9833_sselect_high();
 		return;
 	}
 
-	if(bit_is_set(PINE, PE6) && is_txing == false)
+	if(was_txing == false && is_txing == true)
 	{
 		dprintf(PSTR("Switching to FREQ1 - TX\r\n"));
-		is_txing = true;
 		ad9833_sselect_low();
 		SPI_write16(AD9833_FSELECT1);
 		ad9833_sselect_high();
@@ -1607,6 +1394,11 @@ static void setup()
 
  	adc_init();
  	dprintf(PSTR("Out of adc_init()\r\n"));
+	
+	/* load the scan values */
+	dtime = eeprom_read_dword(&dwell_time);
+	srate = eeprom_read_dword(&scan_rate);
+
  	
 	read_channel_ev = rb_event_add(read_channel, 200, 0);
 	rb_event_add(process_uart, 50, 0);
