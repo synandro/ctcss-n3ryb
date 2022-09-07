@@ -1393,7 +1393,6 @@ static void setup()
  	ad9833_init();
 
  	adc_init();
- 	dprintf(PSTR("Out of adc_init()\r\n"));
 	
 	/* load the scan values */
 	dtime = eeprom_read_dword(&dwell_time);
@@ -1404,7 +1403,6 @@ static void setup()
 	rb_event_add(process_uart, 50, 0);
 	rb_event_add(process_commands, 20, 0);
 	led_on();
-	dprintf(PSTR("setup finished\r\n"));	
 }
 
 int main(void)
