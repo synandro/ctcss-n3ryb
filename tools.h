@@ -29,6 +29,9 @@
 #define TOOLS_H 1
 
 
+#define dprintf(...) printf_P(__VA_ARGS__)
+
+
 
 /* static memory allocations for linebufs.  reduce these if you want to reduce SRAM memory footprint */
 #define BUF_DATA_SIZE 64

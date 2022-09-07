@@ -39,13 +39,10 @@
 #include "tools.h"
 #include "event.h"
 
-#define dprintf(...) printf_P(__VA_ARGS__)
-
-
 #define MAX_EVENTS 10
 
 
-volatile uint32_t tick;
+uint32_t tick;
 
 static rb_dlink_list event_list;
 static int32_t event_time_min = -1;
@@ -85,8 +82,8 @@ rb_event_add(EVH * func, uint32_t frequency, uint16_t count)
 	ev->count = count;
 	if(count > 0)
 		ev->counter = true;
-	ev->frequency = frequency;
 
+	ev->frequency = frequency;
 
 	now = current_ts();
 
