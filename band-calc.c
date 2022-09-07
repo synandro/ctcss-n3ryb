@@ -34,8 +34,8 @@ static const struct bands bl[] = {
 	{  .band_start = 146.00, .band_stop = 146.60, .bandswitch = ten_A, .hilo = BAND_HIGH, .vfo = 138},
 
 	{  .band_start = 146.50, .band_stop = 147.00, .bandswitch = ten_B, .hilo = BAND_HIGH, .vfo = 138.5},
-	{  .band_start = 147.00, .band_stop = 147.50, .bandswitch = ten_C, .hilo = BAND_HIGH, .vfo = 139.0},
-	{  .band_start = 147.50, .band_stop = 148.00, .bandswitch = ten_D, .hilo = BAND_HIGH, .vfo = 139.5},
+	{  .band_start = 147.00, .band_stop = 147.390, .bandswitch = ten_C, .hilo = BAND_HIGH, .vfo = 139.0},
+	{  .band_start = 147.391, .band_stop = 148.00, .bandswitch = ten_D, .hilo = BAND_HIGH, .vfo = 139.5},
 };
 
 
@@ -85,8 +85,8 @@ bool downconvert(double freq, double *outfreq, const char **bandsw, double *vfo)
 #define REF_FREQ 25000000
 void calculate_ad9833(double frequency, uint16_t *freq_MSB, uint16_t *freq_LSB)
 {
-        uint32_t freq_data = (float)(frequency * powf(2, 28)) / (float)REF_FREQ;
-        fprintf(stderr, "freq_data: %lu\r\n", freq_data);
+        uint32_t freq_data = (double)(frequency * pow(2, 28)) / (double)REF_FREQ;
+//        fprintf(stderr, "freq_data: %lu\r\n", freq_data);
         *freq_MSB = (freq_data >> 14);
         *freq_LSB = (freq_data & 0x3FFF); 
 }
@@ -108,11 +108,11 @@ int main(int argc, char **argv)
 	infreq = repeater_input(freq);
 	downconvert(freq, &ten_freq, &obs, &vfo);
 	downconvert(infreq, &ten_infreq, &ibs, &vfoin);
-	fprintf(stdout, "Output: %.06f Input: %.06f\n", freq, infreq);
+//	fprintf(stdout, "Output: %.06f Input: %.06f\n", freq, infreq);
 	calculate_ad9833((freq - vfo) * 1000000, &freq_MSB, &freq_LSB);
 	fprintf(stdout, "Output: %.06f Input: %.06f VFO: %.06f\n", freq, infreq, (freq - vfo) * 1000000);
 
-	fprintf(stdout, ".freq_msb = %u, .freq_lsb = %u }, /* %.3f */\n", freq_MSB, freq_LSB, freq);
+	fprintf(stdout, "\t\t{ .ctcss_tone = %s, .freq_msb = %u, .freq_lsb = %u, .skip = 0 }, /* %.3f %s */\n", argv[2], freq_MSB, freq_LSB, freq, argv[3]);
 //	fprintf(stdout, ",%.06f,OUTMSB:,%u,OUTLSB:,%u\n", freq, freq_MSB, freq_LSB);
 //	fprintf(stdout, "OUT MSB: %u OUTLSB: %u\n", freq_MSB, freq_LSB);
 //	calculate_ad9833((infreq - vfoin) * 1000000, &freq_MSB, &freq_LSB);

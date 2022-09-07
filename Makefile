@@ -21,10 +21,10 @@ EXTRA_FLAGS += -DRESET_ACTIVE
 endif
 # EXTRA_FLAGS += -DF_CPU=8000000L -DCLOCK_SOURCE=6 
 
-OPTLEVEL=-Os #  -flto
+OPTLEVEL=-O2 -flto -mcall-prologues   -fipa-pta   -mrelax  #  --param=min-pagesize=0  # -flto  --param=min-pagesize=0 -flto
 COMPILE    = avr-gcc -save-temps=obj -Wall -Wextra -Wno-unused-parameter -mmcu=$(DEVICE) $(OPTLEVEL)  -finline-functions   -fverbose-asm -std=gnu11 -DF_CPU=16000000L -DBAUD_TOL=2 -DBAUD=38400 -DREF_FREQ=25000000 # -flto
 
-OBJS       = ctcss-n3ryb.o event.o tools.o pwm-sine.o
+OBJS       = ctcss-n3ryb.o event.o tools.o pwm-sine.o memories.o
 OUTNAME    := $(notdir $(patsubst %/,%,$(dir $(realpath $(firstword $(MAKEFILE_LIST))))))
 
 
@@ -96,7 +96,7 @@ clean:
 
 ctcss-n3ryb.elf: $(OBJS)
 	$(COMPILE) -Wall -Wextra -std=gnu11 -Wl,--gc-sections -Wl,-Map,$(basename $@).map -o $@ $^
-	avr-size $@ -C --mcu=$(DEVICE)
+	$(HOME)/bin/avr-size $@ -C --mcu=$(DEVICE)
 
 
 #flashfuse: fuse.txt
