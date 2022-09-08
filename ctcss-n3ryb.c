@@ -48,10 +48,10 @@ buf_head_t uart_rx_buf;
 
 uint16_t current_band;
 uint16_t current_channel;
-uint32_t scan_rate EEMEM = 500;
-uint32_t dwell_time EEMEM = 2000;
-uint32_t dtime = 2000; /* so we don't need to keep loading dwell_time from eeprom */
-uint32_t srate = 500;
+uint32_t scan_rate EEMEM = 50;
+uint32_t dwell_time EEMEM = 6000;
+uint32_t dtime = 6000; /* so we don't need to keep loading dwell_time from eeprom */
+uint32_t srate = 50;
 uint32_t scan_count = 0;
 
 volatile bool is_split = false;

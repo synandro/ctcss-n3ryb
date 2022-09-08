@@ -45,8 +45,8 @@
 uint32_t tick;
 
 static rb_dlink_list event_list;
-static int32_t event_time_min = -1;
 static struct ev_entry event_heap[MAX_EVENTS];
+
 
 static struct ev_entry *event_alloc(void)
 {
@@ -54,7 +54,6 @@ static struct ev_entry *event_alloc(void)
 	{
 		if(event_heap[i].used == false)
 		{
-			memset(&event_heap[i], 0, sizeof(event_heap[i]));
 			event_heap[i].used = true;
 			return &event_heap[i];
 		}
@@ -82,17 +81,14 @@ rb_event_add(EVH * func, uint32_t frequency, uint16_t count)
 	ev->count = count;
 	if(count > 0)
 		ev->counter = true;
+	else
+		ev->counter = false;
 
 	ev->frequency = frequency;
 
 	now = current_ts();
 
 	ev->when = now;
-
-	if((ev->when < event_time_min) || (event_time_min == -1))
-	{
-		event_time_min = ev->when;
-	}
 
 	rb_dlinkAdd(ev, &ev->node, &event_list);
 	return ev;
@@ -112,8 +108,7 @@ void rb_event_init()
 }
 
 
-static void
-rb_set_back_events(int32_t by)
+static void rb_set_back_events(int32_t by)
 {
 	rb_dlink_node *ptr;
 	struct ev_entry *ev;
@@ -137,7 +132,7 @@ void rb_event_run(void)
 
 	now = current_ts();
 	/* reset the counter before it gets anywhere near close to overflow */	
-	if(rb_unlikely(now > (INT32_MAX / 2)))
+	if(now > (INT32_MAX / 2))
 	{
 		ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 		{
@@ -162,11 +157,6 @@ void rb_event_run(void)
 			{
 				ev->when = now + ev->frequency;
 			}
-		}
-		else
-		{
-			if((ev->when < event_time_min) || (event_time_min == -1))
-				event_time_min = ev->when;
 		}
 	}
 }

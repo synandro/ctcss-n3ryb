@@ -38,16 +38,20 @@
 
 static buf_line_t linebuf_heap[LINEBUF_MAXLINES];
 
-
 static buf_line_t *rb_linebuf_allocate(void)
 {
-	for(uint8_t i = 0; i < LINEBUF_MAXLINES; i++)
+	buf_line_t *p;
+	for(uint8_t i = 0; i < sizeof(linebuf_heap) / sizeof(buf_line_t); i++)
 	{
 		if(linebuf_heap[i].used == false)
 		{
-			memset(&linebuf_heap[i], 0, sizeof(linebuf_heap[i]));
-			linebuf_heap[i].used = true;
-			return &linebuf_heap[i];
+			p = &linebuf_heap[i];	
+			p->len = 0;
+			p->terminated = false;
+			p->used = true;
+			p->raw = false;
+			p->buf[0] = '\0';
+			return p;
 		}
 	}
 	return NULL;
@@ -69,10 +73,8 @@ rb_linebuf_new_line(buf_head_t * bufhead)
 	if(bufline == NULL)
 		return NULL;
 
-
 	/* Stick it at the end of the buf list */
 	rb_dlinkAddTail(bufline, &bufline->node, &bufhead->list);
-
 	return bufline;
 }
 
