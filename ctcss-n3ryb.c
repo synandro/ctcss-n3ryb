@@ -616,15 +616,19 @@ static void cmd_listchan(char **argv, uint8_t argc)
 		for(channel = 0; channel < CHAN_MAX; channel++)
 		{
 			wdt_reset();
+#ifdef MEMORY_IN_EEPROM
 			eeprom_read_block(&m, &bands[band][channel], sizeof(m));
-			dprintf(PSTR("CMD_LISTCHAN: band = %u, channel = %u, .m.skip = %u, .ctcss_tone = %u, .freq_msb = %u, .freq_lsb = %u, .rev_msb = %u, .rev_lsb = %u\r\n"), band, channel+1, m.skip, m.ctcss_tone, m.freq_msb, m.freq_lsb, m.rev_msb, m.rev_lsb);
+#else
+			memcpy_P(&m, &bands[band][channel], sizeof(m));
+#endif
+			dprintf(PSTR("CMD_LISTCHAN: band = %u, channel = %u, .m.skip = %u, .ctcss_tone = %u, .freq_msb = %u, .freq_lsb = %u, .rev_msb = %u, .rev_lsb = %u, .desc = %s\r\n"), band, channel+1, m.skip, m.ctcss_tone, m.freq_msb, m.freq_lsb, m.rev_msb, m.rev_lsb, m.desc);
 		}
 	
 	}
 	wdt_reset();
 
 }
-
+#ifdef MEMORY_IN_EEPROM
 static void cmd_savechan(char **argv, uint8_t argc)
 {
 	struct memory_entry m;
@@ -660,6 +664,7 @@ static void cmd_savechan(char **argv, uint8_t argc)
 	eeprom_read_block(&m, &bands[band][channel-1], sizeof(m));
 	dprintf("SAVECHAN: Read: band: %u, channel: %u msb:%u lsb:%u tone:%u",band, channel, m.freq_msb, m.freq_lsb, m.ctcss_tone);
 }
+#endif
 
 #ifdef ADC_IN_EEPROM
 
@@ -790,7 +795,9 @@ static const struct command_struct commands[] = {
 	{ .cmd = "reboot", .handler = cmd_reboot },
 	{ .cmd = "tone", .handler = cmd_tone },
 	{ .cmd = "chan", .handler = cmd_chan },
+#if MEMORIES_IN_EEPROM
 	{ .cmd = "savechan", .handler = cmd_savechan }, 
+#endif
 #if ADC_IN_EEPROM
 	{ .cmd = "saveadc_b", .handler = cmd_saveadc_b },
 	{ .cmd = "saveadc_c", .handler = cmd_saveadc_c }, 
@@ -1051,8 +1058,11 @@ static void set_channel(uint16_t band, uint16_t channel, bool report)
 		ad9833_shutdown();
 		return;
 	}
+#ifdef MEMORIES_IN_EEPROM
 	eeprom_read_block(&m, &bands[band][channel-1], sizeof(m));
-
+#else
+	memcpy_P(&m, &bands[band][channel-1], sizeof(m));
+#endif
 	wdt_reset();
 	
 #if 0	
@@ -1066,7 +1076,9 @@ static void set_channel(uint16_t band, uint16_t channel, bool report)
 		m.ctcss_tone = 0;
 #endif
 	if(report)
-		dprintf(PSTR("set_channel: band: %u channel: %u - %u %u - ctcss frequency: %u\r\n"),  band, channel, m.freq_msb, m.freq_lsb, m.ctcss_tone);
+	{
+		dprintf(PSTR("set_channel: %s band: %u channel: %u - %u %u - ctcss frequency: %u\r\n"),  m.desc, band, channel, m.freq_msb, m.freq_lsb, m.ctcss_tone);
+	}
 
 	if(m.freq_msb == 0 && m.freq_lsb == 0)
 	{
@@ -1288,8 +1300,11 @@ static void do_scan(void)
 	scan_count++;
 	for(uint16_t i = channel; i < CHAN_MAX - 1; i++)
 	{
+#ifdef MEMORIES_IN_EEPROM
 		eeprom_read_block(&m, &bands[band][i], sizeof(m));
-		
+#else
+		memcpy_P(&m, &bands[band][i], sizeof(m));
+#endif		
 		if(m.skip == true)
 			continue;
 
@@ -1395,7 +1410,6 @@ static void setup()
 	dtime = eeprom_read_dword(&dwell_time);
 	srate = eeprom_read_dword(&scan_rate);
 
-	cmd_listchan(NULL, 0); 	
 	read_channel_ev = rb_event_add(read_channel, 200, 0);
 	rb_event_add(process_uart, 50, 0);
 	rb_event_add(process_commands, 20, 0);
