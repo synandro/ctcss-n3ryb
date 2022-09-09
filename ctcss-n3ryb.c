@@ -116,8 +116,8 @@ static const uint16_t band_switch_range[BAND_MAX][2] ADC_MEM  = {
 	{ 598, 620 }
 };
 
-/* min/max range for each band switch */
-static const uint16_t channel_switch_range[CHAN_MAX][2] ADC_MEM = {
+/* min/max range for each band switch the +2 is for the VFO and the scan function*/
+static const uint16_t channel_switch_range[CHAN_MAX+2][2] ADC_MEM = {
 	{ 0, 30 },
 	{ 970, 1024 },
 	{ 140, 160 },
@@ -617,7 +617,7 @@ static void cmd_listchan(char **argv, uint8_t argc)
 		{
 			wdt_reset();
 			eeprom_read_block(&m, &bands[band][channel], sizeof(m));
-			dprintf(PSTR("CMD_LISTCHAN: band = %u, channel = %u, .m.skip = %u, .ctcss_tone = %u, .freq_msb = %u, .freq_lsb = %u, .rev_msb = %u, .rev_lsb = %u\r\n"), band, channel, m.skip, m.ctcss_tone, m.freq_msb, m.freq_lsb, m.rev_msb, m.rev_lsb);
+			dprintf(PSTR("CMD_LISTCHAN: band = %u, channel = %u, .m.skip = %u, .ctcss_tone = %u, .freq_msb = %u, .freq_lsb = %u, .rev_msb = %u, .rev_lsb = %u\r\n"), band, channel+1, m.skip, m.ctcss_tone, m.freq_msb, m.freq_lsb, m.rev_msb, m.rev_lsb);
 		}
 	
 	}
@@ -653,11 +653,11 @@ static void cmd_savechan(char **argv, uint8_t argc)
 	
 	dprintf("SAVECHAN: Write: band: %u, channel: %u msb:%u lsb:%u tone:%u",band, channel, m.freq_msb, m.freq_lsb, m.ctcss_tone);
 	wdt_reset();
-	eeprom_write_block(&m, &bands[band][channel], sizeof(m));
+	eeprom_write_block(&m, &bands[band][channel-1], sizeof(m));
 	wdt_reset();
 	eeprom_busy_wait();
 	wdt_reset();
-	eeprom_read_block(&m, &bands[band][channel], sizeof(m));
+	eeprom_read_block(&m, &bands[band][channel-1], sizeof(m));
 	dprintf("SAVECHAN: Read: band: %u, channel: %u msb:%u lsb:%u tone:%u",band, channel, m.freq_msb, m.freq_lsb, m.ctcss_tone);
 }
 
@@ -1039,8 +1039,7 @@ static void set_channel(uint16_t band, uint16_t channel, bool report)
 {
 	static struct memory_entry m;
 		
-	/* band is zero indexed, channel is indexed on 1, (zero being the vfo channel) */
-	if(band > BAND_MAX - 1 || channel > CHAN_MAX)
+	if(band > BAND_MAX - 1 || channel > CHAN_MAX - 1)
 	{
 		dprintf(PSTR("set_channel: band or channel out of range\r\n"));
 		return;
@@ -1052,7 +1051,7 @@ static void set_channel(uint16_t band, uint16_t channel, bool report)
 		ad9833_shutdown();
 		return;
 	}
-	eeprom_read_block(&m, &bands[band][channel], sizeof(m));
+	eeprom_read_block(&m, &bands[band][channel-1], sizeof(m));
 
 	wdt_reset();
 	
@@ -1396,7 +1395,7 @@ static void setup()
 	dtime = eeprom_read_dword(&dwell_time);
 	srate = eeprom_read_dword(&scan_rate);
 
- 	
+	cmd_listchan(NULL, 0); 	
 	read_channel_ev = rb_event_add(read_channel, 200, 0);
 	rb_event_add(process_uart, 50, 0);
 	rb_event_add(process_commands, 20, 0);
