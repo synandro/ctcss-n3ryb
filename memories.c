@@ -86,8 +86,6 @@ struct memory_entry bands[BAND_MAX][CHAN_MAX] EEMEM = {
 	},	
 	{
 		/* band 2 - 145.0 - 145.49 */ 	
-
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .skip = 0 },
 		{ .ctcss_tone = CTCSS_179_9, .freq_msb = 5341, .freq_lsb = 3014, .skip = 0 }, /* 145.150 "Martinsburg W8ORS vfo: 137.000000 */
 		{ .ctcss_tone = CTCSS_118_8, .freq_msb = 5367, .freq_lsb = 6527, .skip = 0 }, /* 145.190 "Moorefield N8VAA vfo: 137.000000 */
 		{ .ctcss_tone = CTCSS_141_3, .freq_msb = 5380, .freq_lsb = 8283, .skip = 0 }, /* 145.210 "Front Royal High Knob Mountain" vfo: 137.000000 */
@@ -102,7 +100,6 @@ struct memory_entry bands[BAND_MAX][CHAN_MAX] EEMEM = {
 	},
 	{	
 		/* band 4 - 146.0 - 146.6 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .skip = 0 },
 		{ .ctcss_tone = 0, .freq_msb = 5583, .freq_lsb = 10931, .skip = 0 }, /* 146.520 simplex */
 		{ .ctcss_tone = 0, .freq_msb = 5505, .freq_lsb = 393, .skip = 0 }, /* 146.400 simplex */
 		{ .ctcss_tone = 0, .freq_msb = 5518, .freq_lsb = 2149, .skip = 0 }, /* 146.420 simplex */
@@ -117,7 +114,6 @@ struct memory_entry bands[BAND_MAX][CHAN_MAX] EEMEM = {
 
 	{
 		/* band 5 - 146.5 - 146.99 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .skip = 0 },
 		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5403, .freq_lsb = 7261, .skip = 0 }, /* 146.745 - Berkeley Springs Cacapon Mountain WV Morgan - KK3L */
 		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5432, .freq_lsb = 15309, .skip = 0 }, /* 146.790 - Clearville Martin Hill PA Bedford - K3NQT */
 		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5442, .freq_lsb = 12530, .skip = 0 }, /* 146.805 - Oakland  MD Garrett - KB8NUF */
@@ -129,7 +125,6 @@ struct memory_entry bands[BAND_MAX][CHAN_MAX] EEMEM = {
 	},
 	{
 		/* band 6 - 147.00 - 147.5*/
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .skip = 0 },
 		{ .ctcss_tone = CTCSS_146_2, .freq_msb = 5439, .freq_lsb = 7995, .skip = 0 }, /* 147.300 "Bluemont Blue Ridge WA4TSC */
 		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5409, .freq_lsb = 16331, .skip = 0 }, /* 147.255 "Martinsburg WB8YZV */
 		{ .ctcss_tone = CTCSS_103_5, .freq_msb = 5429, .freq_lsb = 10774, .skip = 0 }, /* 147.285 "Circleville Spruce Knob N8HON */
@@ -141,7 +136,6 @@ struct memory_entry bands[BAND_MAX][CHAN_MAX] EEMEM = {
 	}, 
 	{
 		/* band 7 - 147.5 - 148 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0, .skip = 0 },
 		{ .ctcss_tone = 0, .freq_msb = 5177, .freq_lsb = 5636, .skip = 0 }, /* 147.400 simplex */
 		{ .ctcss_tone = 0, .freq_msb = 5190, .freq_lsb = 7392, .skip = 0 }, /* 147.420 simplex */
 		{ .ctcss_tone = 0, .freq_msb = 5203, .freq_lsb = 9148, .skip = 0 }, /* 147.440 simplex */

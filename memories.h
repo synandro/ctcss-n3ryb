@@ -4,7 +4,8 @@
 
 #define CHAN_VFO 0
 #define CHAN_SCAN 11
-#define CHAN_MAX 12
+
+#define CHAN_MAX 10 
 #define BAND_MAX 8 
 
 
