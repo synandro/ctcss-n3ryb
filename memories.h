@@ -9,6 +9,14 @@
 #define CHAN_SWITCH_MAX 12
 #define BAND_MAX 8 
 
+// #define MEMORY_IN_EEPROM 1
+
+#ifdef MEMORY_IN_EEPROM
+#define MEMORY_MEM EEMEN
+#else
+#define MEMORY_MEM PROGMEM
+#endif
+
 
 enum {
 	 CTCSS_NONE,
@@ -67,6 +75,7 @@ struct memory_entry {
 	uint16_t rev_lsb;
 	uint8_t ctcss_tone;
 	bool skip;
+	char desc[48];
 };
 
 
