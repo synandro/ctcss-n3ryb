@@ -6,6 +6,7 @@
 #define CHAN_SCAN 11
 
 #define CHAN_MAX 10 
+#define CHAN_SWITCH_MAX 12
 #define BAND_MAX 8 
 
 

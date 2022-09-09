@@ -117,7 +117,7 @@ static const uint16_t band_switch_range[BAND_MAX][2] ADC_MEM  = {
 };
 
 /* min/max range for each band switch the +2 is for the VFO and the scan function*/
-static const uint16_t channel_switch_range[CHAN_MAX+2][2] ADC_MEM = {
+static const uint16_t channel_switch_range[CHAN_SWITCH_MAX][2] ADC_MEM = {
 	{ 0, 30 },
 	{ 970, 1024 },
 	{ 140, 160 },
@@ -591,7 +591,7 @@ static void cmd_listadc(char **argv, uint8_t argc)
 		dprintf(PSTR("CMD_LISTADC: band = %u, .min = %u, .max = %u \r\n"), band, range[0], range[1]);
 	}
 
-	for(channel = 0; channel < CHAN_MAX; channel++)
+	for(channel = 0; channel < CHAN_SWITCH_MAX; channel++)
 	{
 		wdt_reset();
 #ifdef ADC_IN_EEPROM
@@ -978,11 +978,11 @@ static bool lookup_channel(uint16_t adc_val, uint16_t *channel)
 
 //	memcpy_P(&channel_range, &channel_switch_range, sizeof(channel_range));
 #ifdef ADC_IN_EEPROM
-	static uint16_t channel_range[CHAN_MAX][2];
+	static uint16_t channel_range[CHAN_SWITCH_MAX][2];
 	eeprom_read_block(&channel_range, &channel_switch_range, sizeof(channel_range));
 #endif
 
-	for(uint8_t i = 0; i < CHAN_MAX; i++)
+	for(uint8_t i = 0; i < CHAN_SWITCH_MAX; i++)
 	{
 		uint16_t c_min, c_max;
 #ifdef ADC_IN_EEPROM		
@@ -1039,7 +1039,7 @@ static void set_channel(uint16_t band, uint16_t channel, bool report)
 {
 	static struct memory_entry m;
 		
-	if(band > BAND_MAX - 1 || channel > CHAN_MAX - 1)
+	if(band > BAND_MAX - 1 || channel > CHAN_MAX)
 	{
 		dprintf(PSTR("set_channel: band or channel out of range\r\n"));
 		return;
