@@ -30,10 +30,8 @@ uint16_t cur_mult; /* frequency for the sine wave generator.  Value is Hz * 8 */
 uint16_t sin_counter;  /* and the counter for it too */
 
 
-/* put the sine table into PROGMEM if you are short on RAM
- * i'd rather keep it in RAM though as its the most commonly hit piece
- * of data on the system 
- */
+/* put the table in PROGMEM */
+#define USE_PROGMEM 1
 #ifdef USE_PROGMEM
 #define RB_PGM PROGMEM 
 #else
