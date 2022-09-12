@@ -67,6 +67,7 @@ static void set_channel(uint16_t band, uint16_t channel, bool report);
 static void do_scan(void);
 static void stop_scan(void);
 static void start_scan(void);
+static void hold_scan(void);
 extern struct memory_entry bands[BAND_MAX][CHAN_MAX] EEMEM;
 
 
@@ -165,7 +166,7 @@ static uint8_t atous(const char *num)
 	}
 	return val;
 }
-
+#if 0
 static uint16_t atoui(const char *num)
 {
 	uint16_t val = 0;
@@ -176,7 +177,7 @@ static uint16_t atoui(const char *num)
 	}
 	return val;
 }
-
+#endif
 
 static inline __attribute__((always_inline)) void led_off(void)
 {
@@ -1173,16 +1174,19 @@ static void read_channel(void)
 
 	wdt_reset();
 	
-	if(current_channel == CHAN_SCAN)
+	switch(current_channel)
 	{
-		dprintf(PSTR("read_channel: starting channel scan\r\n"));
-		start_scan();
-		return;
-	} else {
-		stop_scan();
-	}
-
-	
+		case CHAN_SCAN:
+			dprintf(PSTR("read_channel: starting channel scan\r\n"));
+			start_scan();
+			return;
+		case CHAN_HOLD:
+			dprintf(PSTR("read_channel: hold channel scan\r\n"));
+			hold_scan();
+			return;
+		default:
+			stop_scan();
+	} 
 	
 	if(pending_channel_change == false || pending_band_change == false)
 	{
@@ -1216,11 +1220,22 @@ static void setup_squelch(void)
 }
 
 
+static uint16_t last_channel;
+static uint16_t last_band;
+static bool should_hold_scan;
+static volatile uint16_t last_channel_int;
+static volatile uint16_t last_band_int;
+
+
 
 ISR(INT0_vect)
 {
 	if(bit_is_set(PIND, PD0))
+	{
 		is_squelched = false;
+		last_channel_int = last_channel;
+		last_band_int = last_band;
+	}
 	else
 		is_squelched = true;
 }
@@ -1228,6 +1243,7 @@ ISR(INT0_vect)
 
 static void stop_scan(void)
 {
+	should_hold_scan = false;
 	if(scan_channel_ev == NULL)
 		return;
 	dprintf(PSTR("Stopping scan\r\n"));
@@ -1236,8 +1252,15 @@ static void stop_scan(void)
 	led_on();
 }
 
+static void hold_scan(void)
+{
+	should_hold_scan = true;
+}
+
+
 static void start_scan(void)
 {
+	should_hold_scan = false;
 	if(scan_channel_ev == NULL)
 	{
 		dprintf(PSTR("start_scan: rate: %lu dwell time: %lu\r\n"), srate, dtime);
@@ -1245,16 +1268,19 @@ static void start_scan(void)
 	}
 }
 
+
+
+
 static void do_scan(void)
 {
 	static uint32_t hangtime;
 	static uint32_t last_jump;
-	static uint16_t last_channel;
-	static uint16_t last_band;
-
+	static bool has_notified = false;
 	static struct memory_entry m;
+	static struct memory_entry lm;
 	uint16_t channel, band;
 	uint32_t ts;
+	static uint32_t last_scan_blip;
 	
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
@@ -1264,14 +1290,34 @@ static void do_scan(void)
 
 		if(is_txing == true)
 		{
-			dprintf(PSTR("Stopped scanning due to TXing\r\n"));
 			return;
 		}
 	}
+	if(should_hold_scan == true)
+	{
+		if(last_scan_blip + 2000 < tick)
+		{
+			led_toggle();
+			last_scan_blip = tick;
+			memcpy_P(&lm, &bands[last_band][last_channel-1], sizeof(lm));
+			dprintf(PSTR("Hold on channel: %s %u %u\r\n"),  lm.desc, last_band, last_channel);
 
+		}
+		return;
+	}
 	if(is_squelched == false)
 	{
 		led_on();
+		if(has_notified == false)
+		{
+			if(last_channel_int >  0)
+			{
+				memcpy_P(&lm, &bands[last_band_int][last_channel_int-1], sizeof(lm));
+				cur_mult = pgm_read_word(&ctcss_tone_table[lm.ctcss_tone]);
+				dprintf(PSTR("Stopped on channel: %s %u %u\r\n"),  lm.desc, last_band_int, last_channel_int);
+			}
+			has_notified = true;
+		}
 		if((last_jump + dtime) > ts)
 			return;
 		hangtime = 0;
@@ -1282,6 +1328,8 @@ static void do_scan(void)
 		led_on();
 		return;
 	}
+	has_notified = false;
+	
 	led_toggle();
 	if(last_band != current_band)
 	{
@@ -1301,9 +1349,9 @@ static void do_scan(void)
 	for(uint16_t i = channel; i < CHAN_MAX - 1; i++)
 	{
 #ifdef MEMORIES_IN_EEPROM
-		eeprom_read_block(&m, &bands[band][i], sizeof(m));
+		eeprom_read_block(&m, &bands[band][i-1], sizeof(m));
 #else
-		memcpy_P(&m, &bands[band][i], sizeof(m));
+		memcpy_P(&m, &bands[band][i-1], sizeof(m));
 #endif		
 		if(m.skip == true)
 			continue;
@@ -1313,6 +1361,7 @@ static void do_scan(void)
 
 		last_channel = channel;
 		last_band = band;
+//		memcpy_P(&lm, &bands[band][i], sizeof(m));
 		set_channel(band, i, false);
 		return;	
 	}
