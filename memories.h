@@ -3,9 +3,10 @@
 
 
 #define CHAN_VFO 0
+#define CHAN_HOLD 10
 #define CHAN_SCAN 11
 
-#define CHAN_MAX 10 
+#define CHAN_MAX 9
 #define CHAN_SWITCH_MAX 12
 #define BAND_MAX 8 
 

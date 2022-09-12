@@ -77,7 +77,6 @@ const struct memory_entry bands[BAND_MAX][CHAN_MAX] MEMORY_MEM = {
 
 	{
 		/* band 0 - 144-144.49 */
-		{ .ctcss_tone = 0, .freq_msb = 0, .freq_lsb = 0 },
 		{ .ctcss_tone = 0, .freq_msb = 5373, .freq_lsb = 15597, .skip = 0, .desc = "144.200" }, 
 		{ .ctcss_tone = 0, .freq_msb = 5498, .freq_lsb = 7707, .skip = 0, .desc = "144.390" }, 
 	},	
@@ -109,7 +108,7 @@ const struct memory_entry bands[BAND_MAX][CHAN_MAX] MEMORY_MEM = {
 		{ .ctcss_tone = 0, .freq_msb = 5570, .freq_lsb = 9175, .skip = 0, .desc = "146.500 simplex" }, 
 		{ .ctcss_tone = 0, .freq_msb = 5596, .freq_lsb = 12687, .skip = 0, .desc = "146.540 simplex" }, 
 		{ .ctcss_tone = 0, .freq_msb = 5609, .freq_lsb = 14444, .skip = 0, .desc = "146.560 simplex" }, 
-		{ .ctcss_tone = 0, .freq_msb = 5622, .freq_lsb = 16200, .skip = 0, .desc = "146.580 simplex" }, 
+//		{ .ctcss_tone = 0, .freq_msb = 5622, .freq_lsb = 16200, .skip = 0, .desc = "146.580 simplex" }, 
 	},
 
 	{
@@ -145,6 +144,6 @@ const struct memory_entry bands[BAND_MAX][CHAN_MAX] MEMORY_MEM = {
 		{ .ctcss_tone = 0, .freq_msb = 5255, .freq_lsb = 16174, .skip = 0, .desc = "147.520 simplex" }, 
 		{ .ctcss_tone = 0, .freq_msb = 5269, .freq_lsb = 1546, .skip = 0, .desc = "147.540 simplex" }, 
 		{ .ctcss_tone = 0, .freq_msb = 5282, .freq_lsb = 3303, .skip = 0, .desc = "147.560 simplex" }, 
-		{ .ctcss_tone = 0, .freq_msb = 5295, .freq_lsb = 5059, .skip = 0, .desc = "147.580 simplex" }, 
+//		{ .ctcss_tone = 0, .freq_msb = 5295, .freq_lsb = 5059, .skip = 0, .desc = "147.580 simplex" }, 
 	}
 };
