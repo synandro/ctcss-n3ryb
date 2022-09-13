@@ -102,7 +102,7 @@ CMD_LISTADC: channel = 11, .min = 670, .max = 700
 #ifdef ADC_IN_EEPROM
 #define ADC_MEM EEMEM
 #else 
-#define ADC_MEM 
+#define ADC_MEM PROGMEM
 #endif
 
 
@@ -586,8 +586,8 @@ static void cmd_listadc(char **argv, uint8_t argc)
 #ifdef ADC_IN_EEPROM
 		eeprom_read_block(&range, &band_switch_range[band], sizeof(range));
 #else
-		range[0] = band_switch_range[band][0];
-		range[1] = band_switch_range[band][1];
+		range[0] = pgm_read_word(&band_switch_range[band][0]);
+		range[1] = pgm_read_word(&band_switch_range[band][1]);
 #endif
 		dprintf(PSTR("CMD_LISTADC: band = %u, .min = %u, .max = %u \r\n"), band, range[0], range[1]);
 	}
@@ -598,8 +598,8 @@ static void cmd_listadc(char **argv, uint8_t argc)
 #ifdef ADC_IN_EEPROM
 		eeprom_read_block(&range, &channel_switch_range[channel], sizeof(range));
 #else
-		range[0] = channel_switch_range[channel][0];
-		range[1] = channel_switch_range[channel][1];
+		range[0] = pgm_read_word(&channel_switch_range[channel][0]);
+		range[1] = pgm_read_word(&channel_switch_range[channel][1]);
 #endif
 		dprintf(PSTR("CMD_LISTADC: channel = %u, .min = %u, .max = %u \r\n"), channel, range[0], range[1]);
 	}
@@ -826,6 +826,7 @@ static void cmd_help(char **argv, uint8_t argc)
 
 #define MAX_PARAMS 8
 
+
 static void process_commands(void)
 {
 	static char *para[MAX_PARAMS];
@@ -839,9 +840,11 @@ static void process_commands(void)
 		wdt_reset();
 		parc = rb_string_to_array(buf, para, MAX_PARAMS);
 		if(parc == 0)
-		{
-			continue;
-		}
+			return;  
+		
+		if(empty_string(para[0]))
+			return;
+
 		for(uint8_t i = 0; commands[i].cmd != NULL; i++)
 		{
 			if(commands[i].iscat == true)
@@ -849,7 +852,7 @@ static void process_commands(void)
 				if(para[0][0] == commands[i].cmd[0] && para[0][1] == commands[i].cmd[1])
 				{
 					commands[i].handler(para, parc);
-					break;;
+					break;
 				}
 			} else {
 				if(strcasecmp(commands[i].cmd, para[0]) == 0)
@@ -866,7 +869,7 @@ static void process_commands(void)
 
 static void process_uart(void)
 {
-	static char buf[BUF_DATA_SIZE];
+	static char buf[BUF_DATA_SIZE+1];
 	char *p;
 	uint16_t count = 0;
 
@@ -889,7 +892,8 @@ static void process_uart(void)
 		{
 			if(rb_linebuf_parse(&uart_rx_buf, buf, p - buf, true) == 0)
 			{
-				process_commands(); /* process the queue */
+				return; /* hopefully this goes okay */
+//				process_commands(); /* process the queue */
 			}
 			p = buf;
 		}
@@ -997,8 +1001,8 @@ static bool lookup_channel(uint16_t adc_val, uint16_t *channel)
 		c_min = channel_range[i][0];
 		c_max =  channel_range[i][1];
 #else
-		c_min = channel_switch_range[i][0];
-		c_max = channel_switch_range[i][1];
+		c_min = pgm_read_word(&channel_switch_range[i][0]);
+		c_max = pgm_read_word(&channel_switch_range[i][1]);
 #endif
 		
 		if((c_min > ADC_MAX) || (c_max > ADC_MAX))
@@ -1028,8 +1032,8 @@ static bool lookup_band(uint16_t adc_val, uint16_t *band)
 		b_min =  band_range[i][0];
 		b_max = band_range[i][1];
 #else
-		b_min = band_switch_range[i][0];
-		b_max = band_switch_range[i][1];
+		b_min = pgm_read_word(&band_switch_range[i][0]);
+		b_max = pgm_read_word(&band_switch_range[i][1]);
 #endif
 
 		if((adc_val >= b_min) && adc_val <= b_max)
@@ -1293,6 +1297,8 @@ static void do_scan(void)
 			return;
 		}
 	}
+
+	/* scanner on hold */
 	if(should_hold_scan == true)
 	{
 		if(last_scan_blip + 2000 < tick)
@@ -1305,6 +1311,8 @@ static void do_scan(void)
 		}
 		return;
 	}
+
+	/* receiver has a signal */
 	if(is_squelched == false)
 	{
 		led_on();
@@ -1333,13 +1341,13 @@ static void do_scan(void)
 	led_toggle();
 	if(last_band != current_band)
 	{
-		channel = 1;
+		channel = CHAN_START;
 	}
 
 	band = current_band;	
 
 	if(last_channel > CHAN_MAX) 
-		channel = 1;
+		channel = CHAN_START;
 	else
 		channel = last_channel + 1;
 
@@ -1365,8 +1373,8 @@ static void do_scan(void)
 		set_channel(band, i, false);
 		return;	
 	}
-	channel = 1;
-	last_channel = 1;
+	channel = CHAN_START;
+	last_channel = CHAN_START;
 	set_channel(band, channel, false);
 }
 
