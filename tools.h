@@ -38,6 +38,8 @@
 #define LINEBUF_MAXLINES 6
 
 
+#define empty_string(x) (!(x) || (*(x) == '\0'))
+
 #define rb_likely(x)       __builtin_expect(!!(x), 1)
 #define rb_unlikely(x)     __builtin_expect(!!(x), 0)
 
