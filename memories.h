@@ -3,6 +3,7 @@
 
 
 #define CHAN_VFO 0
+#define CHAN_START 1
 #define CHAN_HOLD 10
 #define CHAN_SCAN 11
 
