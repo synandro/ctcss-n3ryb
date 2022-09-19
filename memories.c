@@ -70,8 +70,51 @@ const uint16_t ctcss_tone_table[CTCSS_LAST] PROGMEM = {
 	2031,  /* HZ_254_1 */
 };
 
-
-
+const char tone_name[CTCSS_LAST][6] PROGMEM = {
+	"0",
+	"67.0",
+	"69.3",
+	"71.9",
+	"74.4",
+	"77.0",
+	"79.7",
+	"82.5",
+	"85.4",
+	"88.5",
+	"91.5",
+	"94.8",
+	"97.4",
+	"100.0",
+	"103.5",
+	"107.2",
+	"110.9",
+	"114.8",
+	"118.8",
+	"123.0",
+	"127.3",
+	"131.8",
+	"136.5",
+	"141.3",
+	"146.2",
+	"151.4",
+	"156.7",
+	"162.2",
+	"167.9",
+	"173.8",
+	"179.9",
+	"186.2",
+	"192.8",
+	"203.5",
+	"206.5",
+	"210.7",
+	"218.1",
+	"225.7",
+	"229.1",
+	"233.6",
+	"241.8",
+	"250.3",
+	"254.1",
+};
 
 const struct memory_entry bands[BAND_MAX][CHAN_MAX] MEMORY_MEM = {
 
@@ -121,6 +164,8 @@ const struct memory_entry bands[BAND_MAX][CHAN_MAX] MEMORY_MEM = {
 		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5491, .freq_lsb = 15020, .skip = 0, .desc = "146.880 Midland Dan's Mountain W3YMW" }, 
 		{ .ctcss_tone = CTCSS_100_0, .freq_msb = 5531, .freq_lsb = 3905, .skip = 0, .desc = "146.940 Clear Spring Fairview Mountain W3CWC" }, 
 		{ .ctcss_tone = CTCSS_131_8, .freq_msb = 5324, .freq_lsb = 13107, .skip = 0, .desc = "146.625 New Market Luray Caverns N4YSA" }, 
+//146.71500,146.115,-0.60000,146.2,"Mount Jackson ",VA,Shenandoah,KB6VAA,OPEN,62.2,SW
+
 	},
 	{
 		/* band 6 - 147.00 - 147.5*/
@@ -132,10 +177,13 @@ const struct memory_entry bands[BAND_MAX][CHAN_MAX] MEMORY_MEM = {
 		{ .ctcss_tone = CTCSS_127_3, .freq_msb = 5478, .freq_lsb = 13264, .skip = 0, .desc = "147.360 Skyline K7SOB" }, 
 		{ .ctcss_tone = CTCSS_100_0, .freq_msb = 5321, .freq_lsb = 8572, .skip = 0, .desc = "147.120 Chambersburg Clark's Knob W3ACH" }, 
 		{ .ctcss_tone = CTCSS_167_9, .freq_msb = 5341, .freq_lsb = 3014, .skip = 0, .desc = "147.150 Blue Knob Ski Resort KB3KWD" }, 
+		{ .ctcss_tone = CTCSS_NONE, .freq_msb = 5488, .freq_lsb = 10485, .skip = 0, .desc = "147.375 K3UMV Hagerstown" } 
+//147.39000,147.99,+0.60000,123.0,"Keyser ",WV,Mineral,WV8BS,OPEN,69.4,W
+
 	}, 
 	{
+		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5170, .freq_lsb = 12949, .rev_msb = 5564, .rev_lsb = 104, .desc = "147.390 Keyser WV, turn off repeater switch" },
 		/* band 7 - 147.5 - 148 */
-		{ .ctcss_tone = 0, .freq_msb = 5177, .freq_lsb = 5636, .skip = 0, .desc = "147.400 simplex" }, 
 		{ .ctcss_tone = 0, .freq_msb = 5190, .freq_lsb = 7392, .skip = 0, .desc = "147.420 simplex" }, 
 		{ .ctcss_tone = 0, .freq_msb = 5203, .freq_lsb = 9148, .skip = 0, .desc = "147.440 simplex" }, 
 		{ .ctcss_tone = 0, .freq_msb = 5216, .freq_lsb = 10905, .skip = 0, .desc = "147.460 simplex" }, 

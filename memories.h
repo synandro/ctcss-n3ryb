@@ -68,7 +68,8 @@ enum {
 };
 
 
-extern const uint16_t ctcss_tone_table[] PROGMEM;
+extern const uint16_t ctcss_tone_table[CTCSS_LAST] PROGMEM;
+extern const char tone_name[CTCSS_LAST][6] PROGMEM;
 
 struct memory_entry {
 	uint16_t freq_msb;

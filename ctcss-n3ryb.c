@@ -43,13 +43,16 @@
 #include "pwm-sine.h"
 #include "memories.h"
 
+uint32_t scan_rate EEMEM = 50;
+uint32_t dwell_time EEMEM = 6000;
+
+
 buf_head_t uart_rx_buf;
 /* buf_head_t uart_tx_buf; */
 
 uint16_t current_band;
 uint16_t current_channel;
-uint32_t scan_rate EEMEM = 50;
-uint32_t dwell_time EEMEM = 6000;
+uint8_t current_tone;
 uint32_t dtime = 6000; /* so we don't need to keep loading dwell_time from eeprom */
 uint32_t srate = 50;
 uint32_t scan_count = 0;
@@ -409,7 +412,7 @@ static void ad9833_setvfo(uint16_t freq_msb, uint16_t freq_lsb, uint16_t rev_msb
 	dds_amp_on();
 
 }
-// #define USE_DOUBLE 1
+#define USE_DOUBLE 1
 static void calc_freq(const char *f, uint16_t *freq_msb, uint16_t *freq_lsb)
 {
 	uint32_t freq_data;
@@ -429,7 +432,7 @@ static void calc_freq(const char *f, uint16_t *freq_msb, uint16_t *freq_lsb)
 }
 
 
-static void __attribute__((noinline)) set_freq(const char *f) 
+static void __attribute__((noinline)) set_freq(const char *f, const char *f1) 
 {
 	uint16_t freq_msb, freq_lsb;
 
@@ -449,13 +452,13 @@ static void __attribute__((noinline)) set_freq(const char *f)
 	SPI_write16(freq_lsb | AD9833_D15); /* D15 is freq1 */
 	SPI_write16(freq_msb | AD9833_D15);
 
-#if 0
-	freq_data = ((uint64_t)(frequency + 1200) << 28) / AD9833_FREQ;
-	freq_msb = (freq_data >> 14);
-	freq_lsb = (freq_data & 0x3FFF);
+	if(f1 != NULL)	
+	{
+		calc_freq(f1, &freq_msb, &freq_lsb);
+		is_split = true;
+	}
 	SPI_write16(freq_lsb | AD9833_D15); /* D15 is freq1 */
 	SPI_write16(freq_msb | AD9833_D15);
-#endif
 	ad9833_sselect_high();
 }
 
@@ -483,26 +486,60 @@ static void cmd_r(char **argv, uint8_t argc)
 
 static void cmd_setfreq(char **argv, uint8_t argc)
 {
-	uint32_t vfo_a_freq = atoul(argv[1]);
-	if(vfo_a_freq > 14000000)
+	uint32_t vfo_a_freq, vfo_b_freq;
+	const char *f0, *f1;
+	if(argc < 2)
+	{
+		dprintf(PSTR("cmd_setfreq: SETFREQ freq0 [freq1]\r\n"));
+		return;
+	}
+
+	f0 = argv[1];
+	vfo_a_freq = atoul(f0);
+	if(argc == 3)
+	{
+		vfo_b_freq = atoul(argv[2]);
+		f1 = argv[2];
+	} else
+		f1 = f0;
+
+	if(vfo_a_freq > 14000000 || (argc == 3 && vfo_b_freq > 14000000))
 	{
 		dprintf(PSTR("\r\nF: frequency too high\r\n"));
 		return;
 	}
-	dprintf(PSTR("\r\nF: Setting VFO A to %s\r\n"), argv[1]);
-	set_freq(argv[1]);
+
+
+	dprintf(PSTR("\r\nF: Setting VFO A to %s, Setting VFO B to %s\r\n"), f0, f1);
+	
+	set_freq(f0, f1);
 
 }
 
 static void cmd_tone(char **argv, uint8_t argc)
 {
+	uint8_t i; 
 	if(argc != 2)
 	{
-		dprintf(PSTR("\r\ncmd_tone: Not enough arguments:  TONE frequency\r\n"));
+		dprintf(PSTR("\r\ncmd_tone: Not enough arguments: TONE frequency (from list below)\r\n"));
+		for(i = 0; i < CTCSS_LAST; i++)
+		{
+			wdt_reset();
+			dprintf(PSTR("%S Hz\r\n"), tone_name[i]);
+		}
 		return;
 	}
-	set_ctcss(atoul(argv[1]));
-	dprintf(PSTR("\r\ncmd_tone: Set frequency to (%u / 8)Hz \r\n"), cur_mult);
+	
+	for(i = 0; i < CTCSS_LAST; i++)
+	{
+		if(strcmp_P(argv[1], tone_name[i]) == 0)
+		{
+			cur_mult = pgm_read_word(&ctcss_tone_table[i]);
+			dprintf(PSTR("\r\nUsing tone: %S mult: %u\r\n"), tone_name[i], cur_mult);
+			return;
+		}
+	}
+	dprintf(PSTR("\r\ncmd_tone: Unknown tone: %s\r\n"), argv[1]);
 }
 
 static void adc_avg_channel(uint16_t *channel, uint16_t *band);
@@ -540,7 +577,7 @@ static void cmd_adcoff(char **argv, uint8_t argc)
 static void cmd_adcon(char **argv, uint8_t argc)
 {
 	dprintf(PSTR("\r\nADC ON\r\n"));
-	read_channel_ev = rb_event_add(read_channel, 1500, 0);
+	read_channel_ev = rb_event_add(read_channel, 200, 0);
 }
 
 
@@ -622,7 +659,7 @@ static void cmd_listchan(char **argv, uint8_t argc)
 #else
 			memcpy_P(&m, &bands[band][channel], sizeof(m));
 #endif
-			dprintf(PSTR("CMD_LISTCHAN: band = %u, channel = %u, .m.skip = %u, .ctcss_tone = %u, .freq_msb = %u, .freq_lsb = %u, .rev_msb = %u, .rev_lsb = %u, .desc = %s\r\n"), band, channel+1, m.skip, m.ctcss_tone, m.freq_msb, m.freq_lsb, m.rev_msb, m.rev_lsb, m.desc);
+			dprintf(PSTR("CMD_LISTCHAN: band = %u, channel = %u, .m.skip = %u, .ctcss_tone = %S, .freq_msb = %u, .freq_lsb = %u, .rev_msb = %u, .rev_lsb = %u, .desc = %s\r\n"), band, channel+1, m.skip, tone_name[m.ctcss_tone], m.freq_msb, m.freq_lsb, m.rev_msb, m.rev_lsb, m.desc);
 		}
 	
 	}
@@ -1082,7 +1119,7 @@ static void set_channel(uint16_t band, uint16_t channel, bool report)
 #endif
 	if(report)
 	{
-		dprintf(PSTR("set_channel: %s band: %u channel: %u - %u %u - ctcss frequency: %u\r\n"),  m.desc, band, channel, m.freq_msb, m.freq_lsb, m.ctcss_tone);
+		dprintf(PSTR("set_channel: %s band: %u channel: %u - %u %u - ctcss frequency: %S\r\n"),  m.desc, band, channel, m.freq_msb, m.freq_lsb, tone_name[m.ctcss_tone]);
 	}
 
 	if(m.freq_msb == 0 && m.freq_lsb == 0)
@@ -1096,10 +1133,12 @@ static void set_channel(uint16_t band, uint16_t channel, bool report)
 
 	if(m.ctcss_tone >= CTCSS_LAST)
 	{
+		current_tone = CTCSS_NONE;
 		cur_mult = 0;
-	} else
+	} else {
+		current_tone = m.ctcss_tone;
 		cur_mult = pgm_read_word(&ctcss_tone_table[m.ctcss_tone]);
-	
+	}
 
 	ad9833_setvfo(m.freq_msb, m.freq_lsb, m.rev_msb, m.rev_lsb);
 }
