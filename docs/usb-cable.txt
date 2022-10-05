@@ -1,0 +1,2 @@
+green - rx1 - white in radio - pin 5
+white - tx1 - yellow in radio - pin 3

@@ -1,0 +1,58 @@
+band 
+
+704
+624
+543
+448
+384
+335
+312
+255
+
+saveadc_b 0 680 750
+saveadc_b 1 600 640
+saveadc_b 2 520 580
+saveadc_b 3 430 480
+saveadc_b 4 370 400
+saveadc_b 5 330 340
+saveadc_b 6 300 320
+saveadc_b 7 200 280
+
+CMD_LISTADC: band = 0, .min = 680, .max = 750 
+CMD_LISTADC: band = 1, .min = 600, .max = 640 
+CMD_LISTADC: band = 2, .min = 520, .max = 580 
+CMD_LISTADC: band = 3, .min = 430, .max = 480 
+CMD_LISTADC: band = 4, .min = 370, .max = 400 
+CMD_LISTADC: band = 5, .min = 330, .max = 340 
+CMD_LISTADC: band = 6, .min = 300, .max = 320 
+CMD_LISTADC: band = 7, .min = 200, .max = 280 
+
+
+CMD_LISTADC: channel = 0, .min = 118, .max = 131 
+CMD_LISTADC: channel = 1, .min = 142, .max = 160 
+CMD_LISTADC: channel = 2, .min = 180, .max = 190 
+CMD_LISTADC: channel = 3, .min = 195, .max = 210 
+CMD_LISTADC: channel = 4, .min = 220, .max = 233 
+CMD_LISTADC: channel = 5, .min = 245, .max = 260 
+CMD_LISTADC: channel = 6, .min = 470, .max = 430 
+CMD_LISTADC: channel = 7, .min = 420, .max = 400 
+CMD_LISTADC: channel = 8, .min = 390, .max = 350 
+CMD_LISTADC: channel = 9, .min = 330, .max = 280 
+CMD_LISTADC: channel = 10, .min = 240, .max = 210 
+CMD_LISTADC: channel = 11, .min = 200, .max = 150 
+
+ 
+
+Channel
+saveadc_c 0 120 135
+saveadc_c 1 153 156
+saveadc_c 2 188 192
+saveadc_c 3 207 224
+saveadc_c 4 238 245
+saveadc_c 5 250 280
+saveadc_c 6 310 325
+saveadc_c 7 345 365
+saveadc_c 8 380 395
+saveadc_c 9 750 790
+saveadc_c 10 850 950
+
