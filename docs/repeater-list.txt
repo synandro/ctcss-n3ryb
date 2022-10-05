@@ -1,0 +1,26 @@
+145.13000 CTCSS_107_2 "Haymarket N3KL 
+145.15000 CTCSS_179_9 "Martinsburg W8ORS 
+145.19000 CTCSS_118_8 "Moorefield N8VAA 
+145.21000 CTCSS_141_3 "Front Royal High Knob Mountain"
+145.27000 CTCSS_123_0 "Meyersdale Hays Mill Fire Tower"
+145.39000 CTCSS_146_2 "Winchester North Mountain KG4Y 
+145.45000 CTCSS_123_0 "Oldtown Warrior Mountain WMA W3YMW"
+145.49000 CTCSS_123_0 "Bedford K3NQT 
+146.62500 CTCSS_131_8 "New Market Luray Caverns N4YSA"
+146.74500 CTCSS_123_0 "Berkeley Springs Cacapon Mountain KK3L"
+146.79000 CTCSS_123_0 "Clearville Martin Hill K3NQT 
+146.80500 CTCSS_123_0 "Oakland KB8NUF 
+146.82000 CTCSS_146_2 "Winchester Great North Mountain W4RKC"
+146.85000 CTCSS_77_0 "Charles Town WA4TXE 
+146.88000 CTCSS_123_0 "Midland Dan's Mountain W3YMW 
+146.94000 CTCSS_100_0 "Clear Spring Fairview Mountain W3CWC"
+147.12000 CTCSS_100_0 "Chambersburg Clark's Knob W3ACH"
+147.15000 CTCSS_167_9 "Blue Knob Ski Resort KB3KWD"
+147.16500 CTCSS_167_9 "Warrenton W4VA 
+147.25500 CTCSS_123_0 "Martinsburg WB8YZV 
+147.27000 CTCSS_203_5 "Gum Spring WB4IKL 
+147.28500 CTCSS_103_5 "Circleville Spruce Knob N8HON 
+147.30000 CTCSS_146_2 "Bluemont Blue Ridge WA4TSC 
+147.31500 CTCSS_131_8 "Basye Great North Mountain K4MRA"
+147.34500 CTCSS_123_0 "Clear Spring K3MAD 
+147.36000 CTCSS_127_3 "Skyline K7SOB 
