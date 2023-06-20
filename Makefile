@@ -48,7 +48,7 @@ all-1: test-serial.hex
 
 install: $(OUTNAME).hex 
 	pkill -TSTP minicom || true
-	avrdude -c arduino -p m32u4 -P /dev/ttyUSB1 -v -b 115200  -U flash:w:$^
+	avrdude -c arduino -p m32u4 -P /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AR0JVY06-if00-port0 -v -b 115200  -U flash:w:$^
 	#  -U eeprom:w:$(OUTNAME).eep
 
 install-eeprom: $(OUTNAME).eep

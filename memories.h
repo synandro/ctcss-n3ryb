@@ -78,7 +78,7 @@ struct memory_entry {
 	uint16_t rev_lsb;
 	uint8_t ctcss_tone;
 	bool skip;
-	char desc[48];
+	char desc[46];
 };
 
 
