@@ -164,6 +164,7 @@ const struct memory_entry bands[BAND_MAX][CHAN_MAX] MEMORY_MEM = {
 		{ .ctcss_tone = CTCSS_123_0, .freq_msb = 5491, .freq_lsb = 15020, .skip = 0, .desc = "146.880 Midland Dan's Mountain W3YMW" }, 
 		{ .ctcss_tone = CTCSS_100_0, .freq_msb = 5531, .freq_lsb = 3905, .skip = 0, .desc = "146.940 Clear Spring Fairview Mountain W3CWC" }, 
 		{ .ctcss_tone = CTCSS_131_8, .freq_msb = 5324, .freq_lsb = 13107, .skip = 0, .desc = "146.625 New Market Luray Caverns N4YSA" }, 
+		{ .ctcss_tone = CTCSS_NONE, .freq_msb = 5255, .freq_lsb = 16174, .skip = 0, .desc = "146.520 simplex" },
 //146.71500,146.115,-0.60000,146.2,"Mount Jackson ",VA,Shenandoah,KB6VAA,OPEN,62.2,SW
 
 	},

@@ -110,29 +110,29 @@ CMD_LISTADC: channel = 11, .min = 670, .max = 700
 
 
 static const uint16_t band_switch_range[BAND_MAX][2] ADC_MEM  = {
-	{ 260, 280 },
+	{ 258, 280 },
 	{ 200, 230 },
 	{ 335, 350 },
 	{ 300, 320 },
 	{ 520, 540 },
 	{ 415, 450 },
-	{ 680, 700 },
+	{ 680, 720 },
 	{ 598, 620 }
 };
 
 /* min/max range for each band switch the +2 is for the VFO and the scan function*/
 static const uint16_t channel_switch_range[CHAN_SWITCH_MAX][2] ADC_MEM = {
 	{ 0, 30 },
-	{ 970, 1024 },
+	{ 950, 1024 },
 	{ 140, 160 },
-	{ 120, 131 },
-	{ 170, 200 },
+	{ 120, 130 },
+	{ 170, 188 },
 	{ 200, 215 },
 	{ 245, 260 },
 	{ 280, 310 },
-	{ 330, 345 },
+	{ 320, 340 },
 	{ 840, 890 },
-	{ 359, 375 },
+	{ 350, 362 },
 	{ 670, 700 }
 };
 
@@ -199,7 +199,7 @@ static inline __attribute__((always_inline)) void led_toggle(void)
 
 static void cmd_uptime(char **argv, uint8_t argc)
 {
-	dprintf(PSTR("\r\nCMD_UPTIME: %lu milliseconds\r\n"), current_ts());
+	dprintf(PSTR("CMD_UPTIME: %lu milliseconds\r\n"), current_ts());
 }
 
 
@@ -521,7 +521,7 @@ static void cmd_tone(char **argv, uint8_t argc)
 	uint8_t i; 
 	if(argc != 2)
 	{
-		dprintf(PSTR("\r\ncmd_tone: Not enough arguments: TONE frequency (from list below)\r\n"));
+		dprintf(PSTR("CMD_TONE: Not enough arguments: TONE frequency (from list below)\r\n"));
 		for(i = 0; i < CTCSS_LAST; i++)
 		{
 			wdt_reset();
@@ -535,11 +535,11 @@ static void cmd_tone(char **argv, uint8_t argc)
 		if(strcmp_P(argv[1], tone_name[i]) == 0)
 		{
 			cur_mult = pgm_read_word(&ctcss_tone_table[i]);
-			dprintf(PSTR("\r\nUsing tone: %S mult: %u\r\n"), tone_name[i], cur_mult);
+			dprintf(PSTR("CMD_TONE: Using tone: %S mult: %u\r\n"), tone_name[i], cur_mult);
 			return;
 		}
 	}
-	dprintf(PSTR("\r\ncmd_tone: Unknown tone: %s\r\n"), argv[1]);
+	dprintf(PSTR("CMD_TONE: Unknown tone: %s\r\n"), argv[1]);
 }
 
 static void adc_avg_channel(uint16_t *channel, uint16_t *band);
@@ -559,7 +559,7 @@ static void cmd_adc(char **argv, uint8_t argc)
 	
 	if(adc_ev == NULL)
 	{
-		dprintf(PSTR("\rCMD_ADC: starting ADC event\r\n"));
+		dprintf(PSTR("\r\nCMD_ADC: starting ADC event\r\n"));
 		adc_ev = rb_event_add(cmd_adc_cb, 1000, 0);
 	} else {
 		rb_event_delete(adc_ev);
@@ -569,33 +569,33 @@ static void cmd_adc(char **argv, uint8_t argc)
 
 static void cmd_adcoff(char **argv, uint8_t argc)
 {
-	dprintf(PSTR("\r\nADC OFF\r\n"));
+	dprintf(PSTR("ADC OFF\r\n"));
 	rb_event_delete(read_channel_ev);
 	read_channel_ev = NULL;
 }
 
 static void cmd_adcon(char **argv, uint8_t argc)
 {
-	dprintf(PSTR("\r\nADC ON\r\n"));
+	dprintf(PSTR("ADC ON\r\n"));
 	read_channel_ev = rb_event_add(read_channel, 200, 0);
 }
 
 
 static void cmd_ddsoff(char **argv, uint8_t argc)
 {
-	dprintf(PSTR("\r\ncmd_ddsoff: Shutting off ad9833\r\n"));
+	dprintf(PSTR("CMD_DDSOFF: Shutting off ad9833\r\n"));
 	ad9833_shutdown();	
 }
 
 static void cmd_ddsampoff(char **argv, uint8_t argc)
 {
-	dprintf(PSTR("\r\nShutting off dds amp\r\n"));
+	dprintf(PSTR("CMD_DDSAMPOFF: Shutting off dds amp\r\n"));
 	dds_amp_off();
 }
 
 static void cmd_ddsampon(char **argv, uint8_t argc)
 {
-	dprintf(PSTR("\r\nTurning on dds amp\r\n"));
+	dprintf(PSTR("CMD_DDSAMPON: Turning on dds amp\r\n"));
 	dds_amp_on();
 }
 
@@ -606,7 +606,7 @@ static void cmd_chan(char **argv, uint8_t argc)
 	band = atous(argv[1]);
 	channel = atous(argv[2]);
 
-	dprintf(PSTR("\r\nCMD_CHAN band: %u chan %u\r\n"), band, channel);
+	dprintf(PSTR("CMD_CHAN band: %u chan %u\r\n"), band, channel);
 	set_channel(band, channel, true);
 }
 
@@ -614,7 +614,7 @@ static void cmd_listadc(char **argv, uint8_t argc)
 {
 	uint16_t band, channel, range[2];
 
-	dprintf(PSTR("\r\nCMD_LISTADC\r\n"));
+	dprintf(PSTR("CMD_LISTADC\r\n"));
 
 	for(band = 0; band < BAND_MAX; band++)
 	{
@@ -675,7 +675,7 @@ static void cmd_savechan(char **argv, uint8_t argc)
 	/* savechan band channel outfreq infreq tone */
 	if(argc != 6)
 	{
-		dprintf(PSTR("\r\nSAVECHAN BAND CHANNEL MSB LSB TONE\r\n"));
+		dprintf(PSTR("SAVECHAN BAND CHANNEL MSB LSB TONE\r\n"));
 		return;
 	}
 
@@ -684,7 +684,7 @@ static void cmd_savechan(char **argv, uint8_t argc)
 
 	if(band > BAND_MAX - 1 || channel > CHAN_MAX - 1)
 	{
-		dprintf(PSTR("\r\nSAVECHAN: Max 8 bands / 11 channels\r\n"));
+		dprintf(PSTR("SAVECHAN: Max 8 bands / 11 channels\r\n"));
 		return;
 	}
 	
@@ -724,14 +724,14 @@ static void cmd_saveadc_c(char **argv, uint8_t argc)
 
 	if(channel > 11)
 	{
-		dprintf(PSTR("\r\nSAVEADC_C max channel is 11\r\n"));
+		dprintf(PSTR("SAVEADC_C max channel is 11\r\n"));
 		return;
 	}
-	dprintf(PSTR("\r\nSAVEADC_C: channel:%u range:%u-%u\r\n"), channel, range[0], range[1]);
+	dprintf(PSTR("SAVEADC_C: channel:%u range:%u-%u\r\n"), channel, range[0], range[1]);
 	eeprom_write_block(&range, &channel_switch_range[channel], sizeof(range));
 	eeprom_busy_wait();
 	eeprom_read_block(&range, &channel_switch_range[channel], sizeof(range));
-	dprintf(PSTR("\r\nSAVEADC_C: Read: channel:%u range:%u-%u\r\n"), channel, range[0], range[1]);
+	dprintf(PSTR("SAVEADC_C: Read: channel:%u range:%u-%u\r\n"), channel, range[0], range[1]);
 	return;
 	
 }
@@ -1515,7 +1515,7 @@ static void setup()
 int main(void)
 {
 	setup();
-	dprintf(PSTR("starting event loop\r\n"));
+	dprintf(PSTR("Starting event loop\r\n"));
 	while(1)
 	{
 		wdt_reset();
