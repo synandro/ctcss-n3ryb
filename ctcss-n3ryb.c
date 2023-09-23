@@ -46,6 +46,8 @@
 uint32_t scan_rate EEMEM = 50;
 uint32_t dwell_time EEMEM = 6000;
 
+uint32_t dtime = 6000; /* so we don't need to keep loading dwell_time from eeprom */
+uint32_t srate = 50;
 
 buf_head_t uart_rx_buf;
 /* buf_head_t uart_tx_buf; */
@@ -53,17 +55,15 @@ buf_head_t uart_rx_buf;
 uint16_t current_band;
 uint16_t current_channel;
 uint8_t current_tone;
-uint32_t dtime = 6000; /* so we don't need to keep loading dwell_time from eeprom */
-uint32_t srate = 50;
-uint32_t scan_count = 0;
+uint32_t scan_count;
 
-volatile bool is_split = false;
-volatile bool is_squelched = false;
-volatile bool is_txing = false;
+volatile bool is_split;
+volatile bool is_squelched;
+volatile bool is_txing;
 
 
 struct ev_entry *read_channel_ev; 
-struct ev_entry *scan_channel_ev = NULL;
+struct ev_entry *scan_channel_ev;
 
 static void read_channel(void);
 static void set_channel(uint16_t band, uint16_t channel, bool report);

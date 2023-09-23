@@ -28,7 +28,7 @@ void rb_event_delete(struct ev_entry *ev);
 
 
 extern uint32_t tick;
-
+extern uint16_t tick_overflow;
 static inline __attribute__((always_inline)) uint32_t current_ts(void)
 {
         uint32_t ts;
