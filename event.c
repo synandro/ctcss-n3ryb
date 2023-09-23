@@ -43,7 +43,7 @@
 
 
 uint32_t tick;
-
+uint16_t tick_overflow;
 static rb_dlink_list event_list;
 static struct ev_entry event_heap[MAX_EVENTS];
 
@@ -113,6 +113,7 @@ static void rb_set_back_events(int32_t by)
 	rb_dlink_node *ptr;
 	struct ev_entry *ev;
 	dprintf(PSTR("rb_set_back_events called\r\n"));
+	tick_overflow++;
 	RB_DLINK_FOREACH(ptr, event_list.head)
 	{
 		ev = ptr->data;
