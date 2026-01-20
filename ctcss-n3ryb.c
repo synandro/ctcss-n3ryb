@@ -17,8 +17,6 @@
  *  USA
  */
 
-
-
 #define ADC_MAX  1024 /* adc values above this are discarded as invalid */
 
 #include <stdint.h>
@@ -335,14 +333,14 @@ static inline void __attribute__((always_inline)) dds_amp_off(void)
 
 static inline void __attribute__((always_inline)) ad9833_off(void)
 {
-	PORTF &= ~_BV(PF5); 
+	PORTB &= ~_BV(PB6); 
 	dds_power = false;
 }
 
 static inline void __attribute__((always_inline)) ad9833_on(void)
 {
-	DDRF |= _BV(PF5);
-	PORTF |= _BV(PF5);
+	DDRB |= _BV(PB6);
+	PORTB |= _BV(PB6);
 	dds_power = true;
 }
 
@@ -587,6 +585,13 @@ static void cmd_ddsoff(char **argv, uint8_t argc)
 	ad9833_shutdown();	
 }
 
+
+static void cmd_ddson(char **argv, uint8_t argc)
+{
+	dprintf(PSTR("CMD_DDSON: Turning on ad9833\r\n"));
+	ad9833_init();	
+
+}
 static void cmd_ddsampoff(char **argv, uint8_t argc)
 {
 	dprintf(PSTR("CMD_DDSAMPOFF: Shutting off dds amp\r\n"));
@@ -821,6 +826,7 @@ static const struct command_struct commands[] = {
 //	{ .cmd = "FA", .handler = cmd_vfo_a, .iscat = 1 },
 	{ .cmd = "setfreq", .handler = cmd_setfreq   },
 	{ .cmd = "ddsoff", .handler = cmd_ddsoff },
+	{ .cmd = "ddson", .handler = cmd_ddson },
 //	{ .cmd = "FB", .handler = cmd_vfo_b },
 //	{ .cmd = "HI", .handler = cmd_hi },
 //	{ .cmd = "T", .handler = cmd_t },
@@ -1467,7 +1473,8 @@ static void setup()
 	wdt_reset();
 	
 	DDRD |= _BV(PD1);
-	DDRF |= _BV(PF4) | _BV(PF5); // DDS amp PF4 - AD9833 PF5
+	DDRF |= _BV(PF4) | _BV(PF5); // DDS amp PF4 - AD9833 PB6
+	DDRB |= _BV(PB6);
 	led_on();
 	
 	cli();
@@ -1499,14 +1506,16 @@ static void setup()
 
 
  	ad9833_init();
-
+#if 0
  	adc_init();
-	
+#endif	
 	/* load the scan values */
 	dtime = eeprom_read_dword(&dwell_time);
 	srate = eeprom_read_dword(&scan_rate);
 
+#if 0
 	read_channel_ev = rb_event_add(read_channel, 200, 0);
+#endif
 	rb_event_add(process_uart, 50, 0);
 	rb_event_add(process_commands, 20, 0);
 	led_on();
