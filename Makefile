@@ -1,6 +1,9 @@
 #  avrdude -c usbtiny -p t85 -U lfuse:w:0xde:m -U hfuse:w:0xd7:m
 
+# FT-221
+#SERIAL_PORT=/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AR0JVY06-if00-port0
 
+SERIAL_PORT=/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0
 
 #DEVICE      = attiny85
 CLOCK16 = 1
@@ -48,7 +51,7 @@ all-1: test-serial.hex
 
 install: $(OUTNAME).hex 
 	pkill -TSTP minicom || true
-	avrdude -c arduino -p m32u4 -P /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AR0JVY06-if00-port0 -v -b 115200  -U flash:w:$^
+	avrdude -c arduino -p m32u4 -P $(SERIAL_PORT) -v -b 115200  -U flash:w:$^
 	#  -U eeprom:w:$(OUTNAME).eep
 
 install-eeprom: $(OUTNAME).eep
